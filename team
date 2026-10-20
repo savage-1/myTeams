@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+# myTeams/team — the ONE interface to the AET rig (tRig1).
+# Hard rule: you never touch raw rig/tmux IDs — this script resolves them.
+# Usage: team up [--resume] | attach <seat> | down | ls | restore
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+SPEC="$ROOT/openRig-team/rig.yaml"
+RIG_NAME="aet"
+# tRig1.4 belt+suspenders: guarantee skip-permissions even if posture resolution drifts.
+export OPENRIG_YOLO=1
+
+# every short seat name (12 = factory floor: director + 3 TMs + 3 eng + 2 gates + 3 specialists)
+# ctx/context-manager PARKED 2026-10-12 (user: remove for now, re-add later) — agents/context-manager/ kept
+SEATS=(director tm-a tm-b tm-c pd se jd auditor verifier cr lr vision)
+
+# short seat name -> canonical tmux session
+seat_session() {
+  case "$1" in
+    director) echo "leadership-director@${RIG_NAME}" ;;
+    tm-a|tma) echo "leadership-tm-a@${RIG_NAME}" ;;
+    tm-b|tmb) echo "leadership-tm-b@${RIG_NAME}" ;;
+    tm-c|tmc) echo "leadership-tm-c@${RIG_NAME}" ;;
+    pd) echo "engineering-pd@${RIG_NAME}" ;;
+    se) echo "engineering-se@${RIG_NAME}" ;;
+    jd) echo "engineering-jd@${RIG_NAME}" ;;
+    auditor) echo "gates-auditor@${RIG_NAME}" ;;
+    verifier) echo "gates-verifier@${RIG_NAME}" ;;
+    cr|code-reader) echo "specialists-code-reader@${RIG_NAME}" ;;
+    lr|researcher-local) echo "specialists-researcher-local@${RIG_NAME}" ;;
+    vision|vm) echo "specialists-vision@${RIG_NAME}" ;;
+    *) echo "unknown seat '$1' (use: ${SEATS[*]})" >&2; return 1 ;;
+  esac
+}
+# node logical id (pod.member) for `rig launch` — the ONLY relaunch path that
+# carries the rig's launch posture (skip-permissions / pi --approve).
+seat_noderef() {
+  case "$1" in
+    director) echo "leadership.director" ;;
+    tm-a|tma) echo "leadership.tm-a" ;;
+    tm-b|tmb) echo "leadership.tm-b" ;;
+    tm-c|tmc) echo "leadership.tm-c" ;;
+    pd) echo "engineering.pd" ;;
+    se) echo "engineering.se" ;;
+    jd) echo "engineering.jd" ;;
+    auditor) echo "gates.auditor" ;;
+    verifier) echo "gates.verifier" ;;
+    cr|code-reader) echo "specialists.code-reader" ;;
+    lr|researcher-local) echo "specialists.researcher-local" ;;
+    vision|vm) echo "specialists.vision" ;;
+    *) echo "unknown seat '$1' (use: ${SEATS[*]})" >&2; return 1 ;;
+  esac
+}
+
+rig_ids_by_status() { # $1 = status filter (running|stopped|...)
+  rig ps --json | jq -r --arg s "$1" \
+    '[.[] | select(.name=="'"$RIG_NAME"'" and .status==$s)] | sort_by(.rigId) | .[-1].rigId // empty'
+}
+# live = any NON-stopped rig (running OR partial/attention_required).
+# 2026-10-14: filtering on status==running alone missed partial rigs — unjam
+# refused them and purge_stale_rigs archived a live rig.
+running_rig() {
+  rig ps --json | jq -r --arg n "$RIG_NAME" \
+    '[.[] | select(.name==$n and .status!="stopped")] | sort_by(.rigId) | .[-1].rigId // empty'
+}
+
+# Managed relaunch = kill pane + rig launch (carries posture + model pin).
+# If continuity is unusable (stop-and-ask "unresumable" / vanished pi session
+# file), fall back to a deliberate fresh occupant — the only path that skips
+# resume state. Returns non-zero only if BOTH paths fail.
+relaunch_seat() {
+  local seat="$1" id="$2" out
+  tmux kill-session -t "$(seat_session "$seat")" 2>/dev/null || true
+  if out="$(rig launch "$id" "$(seat_noderef "$seat")" 2>&1)"; then
+    return 0
+  fi
+  echo "$out" | tail -2
+  echo "relaunch: $seat continuity unusable → rig seat launch --fresh"
+  rig seat launch "$(seat_noderef "$seat")" --fresh --stop \
+    --reason "team relaunch: continuity unusable" >/dev/null
+}
+
+down_running() {
+  local id; id="$(running_rig)"
+  if [ -n "$id" ]; then
+    echo "down: $RIG_NAME $id"
+    rig down "$id" || true   # 13-seat teardown can outlive the HTTP call (async)
+    echo "down: $id → $(rig ps --json | jq -r --arg i "$id" '[.[]|select(.rigId==$i)|.status]|first // "gone"')"
+  else
+    echo "down: no running $RIG_NAME rig"
+  fi
+}
+
+purge_stale_rigs() {
+  # rig up resumes a same-name STOPPED rig (stale membership included).
+  # Keep only the newest stopped rig whose node count matches the spec;
+  # archive the rest (soft, reversible: rig unarchive <id>).
+  local want; want="$(awk '/^      - id:/{n++} END{print n+0}' "$SPEC")"
+  [ "$want" -gt 0 ] || return 0
+  local id nodes kept=0
+  while read -r id nodes; do
+    [ -n "${id:-}" ] || continue
+    if [ "$nodes" = "$want" ] && [ "$kept" = 0 ]; then
+      kept=1
+      continue
+    fi
+    echo "up: archiving stale $RIG_NAME rig $id (nodes=$nodes, want=$want)"
+    rig archive "$id" >/dev/null
+  done < <(rig ps --json | jq -r --arg n "$RIG_NAME" \
+    '[.[] | select(.name==$n and .status=="stopped")] | sort_by(.rigId) | reverse | .[] | "\(.rigId) \(.nodeCount)"')
+}
+
+cmd_up() {
+  local resume=0
+  [ "${1:-}" = "--resume" ] && resume=1
+  down_running
+  purge_stale_rigs
+  if [ "$resume" = 1 ]; then
+    cmd_restore
+    return
+  fi
+  local proj="${2:-$PWD}"
+  echo "up: rig up $SPEC --cwd $proj"
+  rig up "$SPEC" --cwd "$proj"
+  local id; id="$(running_rig)"
+  echo "RIG=$id"
+  wait_sessions
+  echo "seats: ${SEATS[*]}"
+  echo "  →   team attach <seat>"
+}
+
+wait_sessions() {
+  local s ok
+  for _ in $(seq 1 60); do
+    ok=1
+    for s in "${SEATS[@]}"; do
+      tmux has-session -t "$(seat_session "$s")" 2>/dev/null || { ok=0; break; }
+    done
+    [ "$ok" = 1 ] && return 0
+    sleep 0.5
+  done
+}
+
+cmd_attach() {
+  local seat="${1:-}"
+  [ -n "$seat" ] || { echo "usage: team attach <${SEATS[*]}>" >&2; exit 1; }
+  local sess cmd
+  sess="$(seat_session "$seat")" || exit 1
+  tmux has-session -t "$sess" 2>/dev/null || { echo "seat $sess not up — run: trs up" >&2; exit 1; }
+  # auto-launch harness if the pane is still a bare shell — via managed relaunch
+  # (rig launch applies the rig's launch posture; a bare `claude`/`pi` does not)
+  cmd="$(tmux display -p -t "$sess" '#{pane_current_command}')"
+  case "$cmd" in
+    zsh|bash|sh|dash)
+      local id; id="$(running_rig)"
+      [ -n "$id" ] || { echo "seat $sess bare and no live rig — run: trs up" >&2; exit 1; }
+      echo "attach: $seat pane bare → managed relaunch"
+      relaunch_seat "$seat" "$id" || { echo "attach: $seat relaunch FAILED" >&2; exit 1; }
+      wait_sessions
+      ;;
+  esac
+  if [ -n "${TMUX:-}" ]; then
+    tmux switch-client -t "$sess"
+  else
+    tmux attach -t "$sess"
+  fi
+}
+
+cmd_down() { down_running; }
+
+# trs2.2: detect jam (dead session / bare shell / junk-flood terminal) — REPORT only
+cmd_health() {
+  local s sess cmd junk
+  for s in "${SEATS[@]}"; do
+    sess="$(seat_session "$s")"
+    if ! tmux has-session -t "$sess" 2>/dev/null; then echo "$s DEAD_SESSION $sess"; continue; fi
+    cmd="$(tmux display -p -t "$sess" '#{pane_current_command}')"
+    case "$cmd" in
+      zsh|bash|sh|dash) echo "$s BARE_SHELL $sess"; continue ;;
+    esac
+    # jam signature: last non-empty pane line is a long base64-ish blob
+    junk="$(tmux capture-pane -p -t "$sess" 2>/dev/null | awk 'NF{L=$0} END{print L}' | grep -cE '^[A-Za-z0-9+/=]{60,}$' || true)"
+    if [ "${junk:-0}" -gt 0 ]; then echo "$s JUNK_FLOOD $cmd"; else echo "$s OK $cmd"; fi
+  done
+}
+
+# trs2.2: managed relaunch — the unjam path (carries posture + model pin; falls
+# back to rig seat launch --fresh when continuity is unusable). Idempotent.
+cmd_unjam() {
+  [ $# -gt 0 ] || { echo "usage: team unjam <seat…|all>" >&2; exit 1; }
+  local id; id="$(running_rig)"
+  [ -n "$id" ] || { echo "unjam: no live $RIG_NAME rig" >&2; exit 1; }
+  local seats=("$@") s
+  [ "${seats[0]}" = "all" ] && seats=("${SEATS[@]}")
+  for s in "${seats[@]}"; do
+    echo "unjam: $s ← managed relaunch ($id)"
+    relaunch_seat "$s" "$id" || { echo "unjam: $s FAILED both paths" >&2; return 1; }
+  done
+  wait_sessions
+  echo "unjam: done → team health"
+}
+
+cmd_ls() {
+  echo "== rigs ($RIG_NAME) =="
+  rig ps --json | jq -r --arg n "$RIG_NAME" \
+    '.[] | select(.name==$n) | "\(.rigId)  \(.status)/\(.lifecycleState)  up=\(.uptime // "-")  attention=\(.attentionCount)"'
+  local id; id="$(running_rig)"
+  if [ -n "$id" ]; then
+    echo "== snapshots (latest 5, rig $id) =="
+    rig snapshot list "$id" 2>/dev/null | head -6
+  else
+    local last; last="$(rig ps --json | jq -r '[.[] | select(.name=="'"$RIG_NAME"'")] | sort_by(.rigId) | .[-1].rigId // empty')"
+    [ -n "$last" ] && { echo "== snapshots (latest 5, rig $last) =="
+      rig snapshot list "$last" 2>/dev/null | head -6; }
+  fi
+}
+
+cmd_restore() {
+  # resume = restore latest complete snapshot of the most recent aet rig
+  local id snap
+  id="$(rig ps --json | jq -r '[.[] | select(.name=="'"$RIG_NAME"'")] | sort_by(.rigId) | .[-1].rigId // empty')"
+  [ -n "$id" ] || { echo "restore: no $RIG_NAME rig found" >&2; exit 1; }
+  snap="$(rig snapshot list "$id" 2>/dev/null | awk 'NR>1 && $3=="complete" {print $1; exit}')"
+  [ -n "$snap" ] || { echo "restore: no complete snapshot for $id" >&2; exit 1; }
+  echo "restore: rig restore $snap --rig $id"
+  rig restore "$snap" --rig "$id"
+  wait_sessions
+  echo "seats: ${SEATS[*]}"
+  echo "  →   team attach <seat>"
+}
+
+case "${1:-}" in
+  up) shift; cmd_up "$@" ;;
+  attach) shift; cmd_attach "$@" ;;
+  down) cmd_down ;;
+  health) cmd_health ;;
+  unjam) shift; cmd_unjam "$@" ;;
+  ls|status) cmd_ls ;;
+  restore|resume) cmd_restore ;;
+  *)
+    cat <<EOF
+myTeams/team — AET rig interface
+  team up [--resume]        boot rig in \$PWD (stale rig auto-downed); --resume = latest snapshot
+  team attach <seat>        attach any of: ${SEATS[*]}
+                            (nested-tmux safe, auto-starts harness via rig launch)
+  team down                 kill the running rig (auto-snapshot)
+  team health               per-seat: OK | BARE_SHELL | JUNK_FLOOD | DEAD_SESSION
+  team unjam <seat…|all>    managed relaunch (posture+model pin); --fresh fallback if unresumable
+  team ls                   rigs + snapshots
+  team restore              resume latest snapshot
+EOF
+    [ -n "${1:-}" ] && exit 1
+    ;;
+esac

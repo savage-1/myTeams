@@ -1,0 +1,36 @@
+name: director
+version: "1.0"
+description: Engineering Director — owns objectives, delegates stories to Technical Managers, monitors progress, and handles escalations.
+
+defaults:
+  runtime: claude-code
+
+imports:
+  - ref: local:../shared
+
+profiles:
+  default:
+    uses:
+      skills:
+        - shared:orchestration-team
+      guidance:
+        - shared:context-discipline
+      subagents: []
+      plugins:
+        - shared:openrig-core
+      runtime_resources:
+        - shared:claude-default-settings
+        - shared:claude-default-mcp
+        - shared:claude-activity-hooks
+
+resources:
+  guidance:
+    - id: role
+      path: guidance/role.md
+
+startup:
+  files:
+    - path: guidance/role.md
+      delivery_hint: send_text
+      required: true
+  actions: []

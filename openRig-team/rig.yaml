@@ -1,0 +1,187 @@
+version: "0.2"
+name: aet
+permission_policy: builtin:yolo
+pods:
+  - id: leadership
+    label: Engineering Leadership
+    members:
+      - id: director
+        agent_ref: local:./agents/director
+        profile: default
+        cwd: "."
+        runtime: claude-code
+        model: openrouter/xiaomi/mimo-v2.6-pro
+        restore_policy: relaunch_fresh
+      - id: tm-a
+        agent_ref: local:./agents/technical-manager
+        profile: default
+        cwd: "."
+        runtime: claude-code
+        model: openrouter/xiaomi/mimo-v2.6-pro
+        restore_policy: relaunch_fresh
+      - id: tm-b
+        agent_ref: local:./agents/technical-manager
+        profile: default
+        cwd: "."
+        runtime: claude-code
+        model: openrouter/xiaomi/mimo-v2.6-pro
+        restore_policy: relaunch_fresh
+      - id: tm-c
+        agent_ref: local:./agents/technical-manager
+        profile: default
+        cwd: "."
+        runtime: claude-code
+        model: openrouter/xiaomi/mimo-v2.6-pro
+        restore_policy: relaunch_fresh
+    # stamp:begin pod-edges leadership
+    edges:
+      - kind: delegates_to
+        from: director
+        to: tm-a
+      - kind: delegates_to
+        from: director
+        to: tm-b
+      - kind: delegates_to
+        from: director
+        to: tm-c
+    # stamp:end pod-edges
+  - id: engineering
+    label: Engineering
+    members:
+      - id: pd
+        agent_ref: local:./agents/principal-dev
+        profile: default
+        cwd: "."
+        runtime: claude-code
+        model: openrouter/anthropic/claude-sonnet-5.5
+        restore_policy: relaunch_fresh
+      - id: se
+        agent_ref: local:./agents/senior-engineer
+        profile: default
+        cwd: "."
+        runtime: claude-code
+        model: openrouter/deepseek/deepseek-v4.1-flash
+        restore_policy: relaunch_fresh
+      - id: jd
+        agent_ref: local:./agents/junior-dev
+        profile: default
+        cwd: "."
+        runtime: claude-code
+        model: openrouter/z-ai/glm-5.3-flash
+        restore_policy: relaunch_fresh
+    edges: []
+  - id: gates
+    label: "Gates (7->2 fold — auditor 6-lens + verifier mechanical)"
+    members:
+      - id: auditor
+        agent_ref: local:./agents/auditor
+        profile: default
+        cwd: "."
+        runtime: claude-code
+        model: openrouter/deepseek/deepseek-v4-flash-0731
+        restore_policy: relaunch_fresh
+      - id: verifier
+        agent_ref: local:./agents/verifier
+        profile: default
+        cwd: "."
+        runtime: claude-code
+        model: openrouter/deepseek/deepseek-v4-flash-0731
+        restore_policy: relaunch_fresh
+    edges: []
+  - id: specialists
+    label: Local Specialists (pi + local models)
+    members:
+      - id: researcher-local
+        agent_ref: local:./agents/researcher-local
+        profile: default
+        cwd: "."
+        runtime: pi
+        restore_policy: relaunch_fresh
+      - id: code-reader
+        agent_ref: local:./agents/code-reader
+        profile: default
+        cwd: "."
+        runtime: pi
+        restore_policy: relaunch_fresh
+      - id: vision
+        agent_ref: local:./agents/vision
+        profile: default
+        cwd: "."
+        runtime: pi
+        restore_policy: relaunch_fresh
+    edges: []
+# stamp:begin edges
+edges:
+  - kind: delegates_to
+    from: leadership.tm-a
+    to: engineering.pd
+  - kind: delegates_to
+    from: leadership.tm-a
+    to: engineering.se
+  - kind: delegates_to
+    from: leadership.tm-a
+    to: engineering.jd
+  - kind: delegates_to
+    from: leadership.tm-a
+    to: gates.auditor
+  - kind: delegates_to
+    from: leadership.tm-a
+    to: gates.verifier
+  - kind: delegates_to
+    from: leadership.tm-a
+    to: specialists.researcher-local
+  - kind: delegates_to
+    from: leadership.tm-a
+    to: specialists.code-reader
+  - kind: delegates_to
+    from: leadership.tm-a
+    to: specialists.vision
+  - kind: delegates_to
+    from: leadership.tm-b
+    to: engineering.pd
+  - kind: delegates_to
+    from: leadership.tm-b
+    to: engineering.se
+  - kind: delegates_to
+    from: leadership.tm-b
+    to: engineering.jd
+  - kind: delegates_to
+    from: leadership.tm-b
+    to: gates.auditor
+  - kind: delegates_to
+    from: leadership.tm-b
+    to: gates.verifier
+  - kind: delegates_to
+    from: leadership.tm-b
+    to: specialists.researcher-local
+  - kind: delegates_to
+    from: leadership.tm-b
+    to: specialists.code-reader
+  - kind: delegates_to
+    from: leadership.tm-b
+    to: specialists.vision
+  - kind: delegates_to
+    from: leadership.tm-c
+    to: engineering.pd
+  - kind: delegates_to
+    from: leadership.tm-c
+    to: engineering.se
+  - kind: delegates_to
+    from: leadership.tm-c
+    to: engineering.jd
+  - kind: delegates_to
+    from: leadership.tm-c
+    to: gates.auditor
+  - kind: delegates_to
+    from: leadership.tm-c
+    to: gates.verifier
+  - kind: delegates_to
+    from: leadership.tm-c
+    to: specialists.researcher-local
+  - kind: delegates_to
+    from: leadership.tm-c
+    to: specialists.code-reader
+  - kind: delegates_to
+    from: leadership.tm-c
+    to: specialists.vision
+# stamp:end edges

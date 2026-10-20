@@ -1,0 +1,35 @@
+name: code-reader
+version: "1.0"
+description: Code Reader (CR) — Graphify-grounded code reading. Query graph → read code around nodes → evidence-only report. Reader, never writer.
+
+defaults:
+  runtime: pi
+
+lifecycle:
+  compaction_strategy: default-compaction
+  restore_policy: relaunch_fresh
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance:
+        - shared:context-discipline
+      subagents: []
+      plugins: []
+      runtime_resources: []
+
+imports:
+  - ref: local:../shared
+
+resources:
+  guidance:
+    - id: role
+      path: guidance/role.md
+
+startup:
+  files:
+    - path: guidance/role.md
+      delivery_hint: send_text
+      required: true
+  actions: []

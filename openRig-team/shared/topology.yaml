@@ -1,0 +1,33 @@
+# topology.yaml — the work-connection contract: WHO may give work to WHOM.
+# scripts/stamp-config.py renders these edges into rig.yaml. Anything not
+# listed here is forbidden — seats never invent work routes.
+
+rules:
+  - "Director delegates stories to Technical Managers; TMs report completion, blockers, validation, and risks back to the Director."
+  - "Technical Managers are peers: tm-a, tm-b, tm-c never assign work to each other."
+  - "Workers (engineering, gates, specialists) receive qitems from a TM and report back to the assigning TM. Workers never assign work."
+  - "The human can direct any seat directly."
+
+# Explicit non-edges — stamp refuses if any of these pairs ever renders.
+forbidden:
+  - [tm-a, tm-b]
+  - [tm-a, tm-c]
+  - [tm-b, tm-c]
+  - [pd, se]
+  - [pd, jd]
+  - [se, jd]
+  - [auditor, verifier]
+  - [researcher-local, code-reader]
+  - [researcher-local, vision]
+  - [code-reader, vision]
+
+# delegates_to: source -> allowed targets.
+# Same-pod pairs render inside the pod's edges block; cross-pod pairs render
+# as top-level dotted-ref edges (e.g. leadership.tm-a -> engineering.pd).
+# Structural rules enforced by stamp: sources are director/TMs only; the
+# director targets TMs only; TMs target workers only (never director/TMs).
+delegates_to:
+  director: [tm-a, tm-b, tm-c]
+  tm-a: [pd, se, jd, auditor, verifier, researcher-local, code-reader, vision]
+  tm-b: [pd, se, jd, auditor, verifier, researcher-local, code-reader, vision]
+  tm-c: [pd, se, jd, auditor, verifier, researcher-local, code-reader, vision]

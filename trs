@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# trs — the rig CLI you can remember (tRig1.5+).
+#   trs up [--resume]   rig at $PWD (existing stays; --resume = latest snapshot)
+#   trs kill [--all]    kill the rig at $PWD · --all = EVERY running rig (auto-snapshot)
+#   trs attach <seat>   director tm-a tm-b tm-c pd se jd auditor verifier cr lr vision
+#   trs ls | restore
+# seat/boot logic lives in myTeams/team — trs adds the project-scoped kill surface.
+set -euo pipefail
+
+# resolve through symlinks so `team` sits next to the REAL script —
+# invoked via ~/.local/bin/trs, `dirname "$0"` is the link dir, not myTeams.
+SELF="$0"
+while [ -L "$SELF" ]; do
+  t="$(readlink "$SELF")"
+  case "$t" in
+    /*) SELF="$t" ;;
+    *) SELF="$(dirname "$SELF")/$t" ;;
+  esac
+done
+TEAM="$(cd "$(dirname "$SELF")" && pwd)/team"
+RIG_NAME="aet"
+
+path_matches() { # $1=project $2=pane path — true if same dir or one is under the other
+  local p q
+  p="$(cd "$1" 2>/dev/null && pwd -P)" || return 1
+  q="$(cd "$2" 2>/dev/null && pwd -P)" || return 1
+  [ -n "$p" ] && [ -n "$q" ] || return 1
+  [[ "$q" == "$p" || "$q" == "$p"/* || "$p" == "$q"/* ]]
+}
+
+rigs_at_project() { # running rigIds whose tmux seats sit at $1
+  local proj="${1:-$PWD}" s path name id
+  while IFS= read -r s; do
+    case "$s" in *@*) ;; *) continue ;; esac
+    path="$(tmux display -p -t "$s" '#{pane_current_path}' 2>/dev/null || true)"
+    [ -n "$path" ] || continue
+    path_matches "$proj" "$path" || continue
+    name="${s##*@}"
+    id="$(rig ps --json | jq -r --arg n "$name" \
+      '[.[] | select(.name==$n and .status=="running")] | sort_by(.rigId) | .[-1].rigId // empty')"
+    [ -n "$id" ] && echo "$id"
+  done < <(tmux list-sessions -F '#{session_name}' 2>/dev/null || true) | sort -u
+}
+
+cmd_up() {
+  if [ "${1:-}" = "--resume" ]; then exec "$TEAM" up --resume; fi
+  local existing
+  existing="$(rigs_at_project "$PWD" | head -1)"
+  if [ -n "$existing" ]; then
+    echo "up: $RIG_NAME rig already up at $PWD: $existing"
+    echo "seats: director tm-a tm-b tm-c pd se jd auditor verifier cr lr vision"
+    echo "  →   trs attach <seat>"
+    echo "(fresh: trs kill && trs up · snapshot: trs restore)"
+    return 0
+  fi
+  exec "$TEAM" up "$@"
+}
+
+cmd_kill() {
+  if [ "${1:-}" = "--all" ] || [ "${1:-}" = "-a" ]; then
+    local id n=0
+    while IFS= read -r id; do
+      [ -n "$id" ] || continue
+      echo "kill: rig $id"
+      rig down "$id" || true   # teardown can outlive the HTTP call (async)
+      echo "kill: $id → $(rig ps --json | jq -r --arg i "$id" '[.[]|select(.rigId==$i)|.status]|first // "gone"')"
+      n=$((n + 1))
+    done < <(rig ps --json | jq -r '.[] | select(.status=="running") | .rigId')
+    [ "$n" = 0 ] && echo "kill --all: no running rigs"
+    return 0
+  fi
+  local ids id
+  ids="$(rigs_at_project "$PWD")"
+  if [ -z "$ids" ]; then
+    echo "kill: no rig running at $PWD"
+    return 0
+  fi
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    echo "kill: rig $id (at $PWD)"
+    rig down "$id" || true   # teardown can outlive the HTTP call (async)
+    echo "kill: $id → $(rig ps --json | jq -r --arg i "$id" '[.[]|select(.rigId==$i)|.status]|first // "gone"')"
+  done <<< "$ids"
+}
+
+case "${1:-}" in
+  up) shift; cmd_up "$@" ;;
+  kill|down) shift; cmd_kill "$@" ;;
+  attach|ls|status|restore|resume) exec "$TEAM" "$@" ;;
+  *)
+    cat <<EOF
+trs — rig CLI
+  trs up [--resume]     rig at \$PWD (existing stays; --resume = latest snapshot)
+  trs kill [--all]      kill rig at \$PWD · --all = every running rig (auto-snapshot)
+  trs attach <seat>     director tm-a tm-b tm-c pd se jd auditor verifier cr lr vision
+  trs ls                rigs + snapshots
+  trs restore           resume latest snapshot
+EOF
+    [ -n "${1:-}" ] && exit 1
+    ;;
+esac

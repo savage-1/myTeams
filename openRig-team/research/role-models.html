@@ -1,0 +1,1097 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JD · SE · AUD · PD — locked trio + dev routing</title>
+<style>
+  :root{
+    --bg:#0d1117; --card:#161b22; --line:#30363d; --fg:#e6edf3; --dim:#8b949e;
+    --acc:#58a6ff; --good:#3fb950; --warn:#d29922; --hot:#f85149; --mid:#a371f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 18px 60px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--dim);margin:0 0 22px;font-size:13px}
+  .sub b{color:var(--fg)}
+  .tag{display:inline-block;background:#21262d;border:1px solid var(--line);color:var(--good);border-radius:5px;padding:1px 8px;font-family:ui-monospace,Menlo,monospace;font-size:12px;margin-left:6px}
+  .tag.hot{color:var(--hot);border-color:var(--hot)}
+
+  /* role cards */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:26px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .role{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s}
+  .role:hover{border-color:var(--acc)}
+  .role.open{border-color:var(--acc)}
+  .role .top{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+  .badge{font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:20px;color:#0d1117}
+  .b-se{background:#58a6ff}.b-jd{background:#3fb950}.b-au{background:#d29922}.b-pd{background:#a371f7;color:#fff}
+  .b-di{background:#ffa657;color:#0d1117}.b-tm{background:#8b949e;color:#0d1117}
+  .b-lr{background:#2dd4bf;color:#0d1117}.b-cr{background:#7ee787;color:#0d1117}
+  .model{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:var(--acc)}
+  .price{margin-left:auto;font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--good);white-space:nowrap}
+  .why{color:var(--fg);font-size:13px;margin:0}
+  .detail{display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+  .role.open .detail{display:block}
+  .kv{display:grid;grid-template-columns:88px 1fr;gap:4px 10px;font-size:13px;margin-bottom:10px}
+  .kv dt{color:var(--dim)}
+  .kv dd{margin:0}
+  .alt{color:var(--dim);font-size:12px}
+  .alt b{color:var(--fg)}
+
+  /* bars */
+  .bars{margin:8px 0 0}
+  .bar-row{display:grid;grid-template-columns:70px 1fr 38px;align-items:center;gap:8px;margin:4px 0;font-size:12px}
+  .bar-row span:first-child{color:var(--dim)}
+  .bar{height:6px;background:#21262d;border-radius:4px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:4px}
+  .i-cod{background:var(--acc)}.i-ag{background:var(--mid)}.i-int{background:var(--good)}
+  .bar-row b{font-family:ui-monospace,Menlo,monospace;text-align:right;color:var(--fg)}
+
+  /* sections */
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+  section h2{font-size:14px;margin:0 0 10px;letter-spacing:.02em}
+  .quote{border-left:3px solid var(--acc);padding:6px 0 6px 12px;color:var(--fg);font-style:italic;font-size:13px;margin:0 0 8px}
+  .quote.warn{border-left-color:var(--hot)}
+  .note{color:var(--dim);font-size:12px;margin:0}
+  .note.fg{color:var(--fg);font-size:13px}
+
+  /* cost table */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600;font-size:12px}
+  td.money{font-family:ui-monospace,Menlo,monospace;color:var(--good);text-align:right}
+  tr:last-child td{border-bottom:none}
+  tfoot td{border-top:1px solid var(--line);border-bottom:none;font-weight:600;padding-top:10px}
+  tr.was td{color:var(--dim);text-decoration:line-through}
+  tr.now td:first-child{color:var(--good)}
+  tr.fix td{background:#2a1a1a}
+
+  /* ladder */
+  .ladder{list-style:none;padding:0;margin:0}
+  .ladder li{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+  .ladder li:last-child{border-bottom:none}
+  .ladder li.pick{background:#21262d;border-radius:6px;padding:8px;margin:2px -4px;border-bottom:none}
+  .ladder li.lit{background:#1c2431;border-radius:6px;padding:8px;margin:2px -4px;border-bottom:none;outline:1px solid var(--acc)}
+  .step{color:var(--dim);font-family:ui-monospace,Menlo,monospace;min-width:18px}
+  .ladder code{color:var(--acc);font-family:ui-monospace,Menlo,monospace}
+  .ladder .p{margin-left:auto;font-family:ui-monospace,Menlo,monospace;color:var(--good);white-space:nowrap}
+  .ladder .int{color:var(--dim);font-family:ui-monospace,Menlo,monospace}
+  .pill{font-size:10px;font-weight:700;background:var(--good);color:#0d1117;border-radius:20px;padding:1px 7px}
+  .pill.was{background:var(--hot);color:#fff}
+
+  /* calc */
+  .calc{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:4px}
+  .calc label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--dim)}
+  .calc input{background:#0d1117;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:6px 8px;width:110px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  .calc input:focus{outline:none;border-color:var(--acc)}
+  .out{margin-left:auto;font-family:ui-monospace,Menlo,monospace;font-size:18px;color:var(--good)}
+  .out small{display:block;font-size:11px;color:var(--dim);font-family:inherit}
+
+  /* sources */
+  .srcs{columns:2;column-gap:22px}
+  @media(max-width:700px){.srcs{columns:1}}
+  .srcs a{display:block;color:var(--acc);text-decoration:none;font-size:12.5px;padding:3px 0;break-inside:avoid}
+  .srcs a:hover{text-decoration:underline}
+  .srcs a span{color:var(--dim)}
+
+  .hint{color:var(--dim);font-size:12px;margin:-16px 0 16px}
+  code{font-family:ui-monospace,Menlo,monospace}
+  .ev{border-left:3px solid var(--mid);padding:6px 0 6px 12px;margin:0 0 10px;font-size:12.5px;color:var(--fg)}
+  .ev b{color:var(--mid)}
+
+  /* ===== dev routing ===== */
+  .axiom{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+  .axiom .a{flex:1 1 180px;background:#21262d;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px}
+  .axiom .a b{display:block;font-family:ui-monospace,Menlo,monospace;color:var(--acc);font-size:12px;letter-spacing:.03em}
+  .axiom .a span{color:var(--dim);font-size:12px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+  .chip{background:#21262d;border:1px solid var(--line);color:var(--fg);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit}
+  .chip:hover{border-color:var(--acc)}
+  .chip.on{background:var(--acc);color:#0d1117;border-color:var(--acc);font-weight:600}
+
+  .panel{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:13px}
+  .panel h4{margin:0 0 8px;font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .panel .route{display:grid;grid-template-columns:80px 1fr;gap:4px 10px;margin:0 0 10px}
+  .panel .route dt{color:var(--dim)}
+  .panel .route dd{margin:0}
+  .panel ul{margin:4px 0 10px;padding-left:18px}
+  .panel li{margin:2px 0}
+  .panel .esc{color:var(--warn);font-size:12.5px;margin:0}
+
+  .gate{background:#21262d;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0 0 12px;font-size:13px}
+  .gate b{color:var(--warn)}
+  .gate ol{margin:6px 0 0;padding-left:20px}
+  .gate li{margin:2px 0}
+
+  .lane{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 12px}
+  .stage{background:#21262d;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer;min-width:96px}
+  .stage:hover{border-color:var(--acc)}
+  .stage.on{border-color:var(--acc);background:#1c2431}
+  .stage b{display:block;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.04em}
+  .stage.jd b{color:#3fb950}.stage.se b{color:#58a6ff}.stage.au b{color:#d29922}.stage.pd b{color:#a371f7}.stage.tm b{color:var(--fg)}
+  .lane .arr{color:var(--dim);font-family:ui-monospace,Menlo,monospace}
+
+  .charters{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.charters{grid-template-columns:1fr}}
+  .chair{background:#21262d;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px}
+  .chair h3{margin:0 0 6px;font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .chair .q{color:var(--mid);font-style:italic;margin:0 0 8px;font-size:12px}
+  .chair dl{display:grid;grid-template-columns:72px 1fr;gap:3px 10px;margin:0}
+  .chair dt{color:var(--dim)}
+  .chair dd{margin:0}
+  .chair .watch{margin:8px 0 0;color:var(--hot);font-size:12px}
+
+  .anti{margin:0;padding-left:18px;font-size:12.5px}
+  .anti li{margin:4px 0}
+  .anti b{color:var(--hot)}
+
+  .tri{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:8px;overflow-x:auto}
+  .tri svg{display:block;min-width:560px;width:100%;height:auto}
+  .ascii{margin:0;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);white-space:pre}
+
+  /* spawn prompts */
+  .prompt{margin:0 0 12px}
+  .prompt .ph{display:flex;align-items:center;gap:8px;margin:0 0 6px}
+  .prompt .ph b{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.04em}
+  .copy{margin-left:auto;background:#21262d;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit}
+  .copy:hover{border-color:var(--acc)}
+  .copy.done{background:var(--good);color:#0d1117;border-color:var(--good)}
+  .prompt pre{margin:0;background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;color:var(--fg);max-height:340px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Full-team seats — Director · TM lanes · JD · SE · AUD · PD + LR/CR helpers <span class="tag">locked trio 2026-10-05</span> <span class="tag hot">PD full-team 2026-10-06</span></h1>
+  <p class="sub">live prices = OpenRouter <b>$/M in / $/M out</b> · AA = Artificial Analysis <b>coding / agentic / intelligence</b> · <b>route by task shape, not seniority</b> — grind→JD · reason→SE · ambiguity→PD · gate→AUD · Director/TM = <b>glm-5.3-flash</b> · LR/CR = <b>LOCAL Qwen3-Coder</b> ($0) · spawn prompts below are verbatim-paste</p>
+
+  <section>
+    <h2>Team topology — story flow + user-direct path</h2>
+    <div class="tri"><pre class="ascii">
+                     ┌────────────────────────────────────────┐
+                     │               USER                     │
+                     │   sole sign-off · works EITHER path    │
+                     └──────┬───────────────────┬────────────┘
+              story brief   │                   │  direct brief
+                            ▼                   ▼  ("tm-d, do X")
+              ┌───────────────────────┐   ┌───────────────────┐
+              │      DIRECTOR        │   │  tm-a  tm-b  tm-c │
+              │ story-board owner    │   │  tm-d  …  (N≤5)  │
+              │ writes stories +     │   │  each owns its    │
+              │ outcome + priority,  │   │  queue + board    │
+              │ NEVER briefs tickets │   │  (dual-addressed) │
+              └──────────┬───────────┘   └─────────┬─────────┘
+                         │ stories                 │ briefs
+                         ▼                         ▼
+              ┌───────────────────────────────────────────────┐
+              │        TM LANE  (own board, lifecycle)        │
+              │  4-question gate → brief → dispatch → integrate│
+              └───┬────────┬─────────┬─────────┬──────────────┘
+                  │        │         │         │
+          ┌───────┘        │         │         └────────┐
+          ▼                ▼         ▼                  ▼
+       JD (grind)       SE (reason)  AUD (gate)     PD (tiebreak)
+       $0.15/$0.50      $0.30/$1.20  $0.42/$2.55    $2/$10
+          │                │          │              │
+          └─── helpers, callable by ALL of the above ┘
+                   ┌───────────────┬──────────────┐
+                   ▼               ▼
+                LR (LOCAL)     CR (LOCAL)
+                research       code reader
+                Qwen3-Coder    Qwen3-Coder
+                30B local      30B local (shared warm)
+                ($0 marginal)  ($0 marginal)
+    </pre></div>
+    <p class="note fg" style="margin-top:8px">Story flow: <b>User → Director → TM lane → (JD | SE) → AUD → (PD)</b>. Solid left path = story brief via Director; right-hand path = <b>user-direct</b> ("tm-d, do X") — bypasses the Director but not the seat charters. <b>LR/CR = helper band</b>: any seat (SE included) dispatches them directly with an evidence echo to the lane board. Span of control: 3–5 TM lanes per Director.</p>
+  </section>
+
+  <div class="grid" id="roles"></div>
+  <p class="hint">↑ click a card for indices, real-user evidence, alternatives, and the debug rationale</p>
+
+  <section>
+    <h2>The eight at a glance</h2>
+    <table>
+      <thead><tr><th>Role</th><th>Model</th><th>Family</th><th style="text-align:right">$/M in/out</th></tr></thead>
+      <tbody>
+        <tr class="now"><td><b>Director</b> story-board</td><td><code>z-ai/glm-5.3-flash</code></td><td>Z-AI</td><td class="money">$0.15 / $0.50</td></tr>
+        <tr class="now"><td><b>TM</b> route-jockey ×N</td><td><code>z-ai/glm-5.3-flash</code></td><td>Z-AI</td><td class="money">$0.15 / $0.50</td></tr>
+        <tr class="now"><td><b>JD</b> grind dev</td><td><code>z-ai/glm-5.3-flash</code></td><td>Z-AI</td><td class="money">$0.15 / $0.50</td></tr>
+        <tr class="now"><td><b>SE</b> senior eng</td><td><code>deepseek/deepseek-v4.1-flash</code></td><td>DeepSeek</td><td class="money">$0.30 / $1.20</td></tr>
+        <tr class="now"><td><b>AUD</b> auditor</td><td><code>qwen/qwen3.8-27b</code></td><td>Alibaba</td><td class="money">$0.42 / $2.55</td></tr>
+        <tr class="now"><td><b>PD</b> principal dev</td><td><code>anthropic/claude-sonnet-5.5</code></td><td>Anthropic</td><td class="money">$2 / $10</td></tr>
+        <tr class="now"><td><b>LR</b> local researcher</td><td><code>LOCAL Qwen3-Coder-30B</code></td><td>local</td><td class="money">$0 / $0</td></tr>
+        <tr class="now"><td><b>CR</b> code reader</td><td><code>LOCAL Qwen3-Coder-30B</code></td><td>local</td><td class="money">$0 / $0</td></tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:8px">Four different families on the code seats → the Auditor never reviews its own model's output. Director/TM share JD's Z-AI family — fine: anti-bias binds code-producing seats (JD/SE vs AUD) only. <b>SE+AUD ≈ $0.16/cycle</b> (was $0.28) · full chain ≈ <b>$0.50</b> (PD dominates at $0.32). <b>LR/CR = LOCAL</b> — one shared warm Qwen3-Coder-30B worker, $0 marginal; watch queue contention (tip-of-queue latency is a real budget). Residual risks: <b>seniority inversion</b> (JD agentic 50.9 &gt; SE 39.8 — route by task shape) · <b>AUD 27B depth ceiling</b> (contested findings → PD; AUD must always see tests, never just the diff).</p>
+  </section>
+
+  <section>
+    <h2>Who may call whom — LR / CR helpers</h2>
+    <table>
+      <thead><tr><th>caller ↓ / helper →</th><th>LR — research</th><th>CR — code reader</th></tr></thead>
+      <tbody>
+        <tr><td><b>Director</b></td><td>yes direct</td><td>yes direct</td></tr>
+        <tr><td><b>TM</b> (any lane)</td><td>yes direct</td><td>yes direct</td></tr>
+        <tr><td><b>JD</b></td><td>yes direct — unblock a slice only</td><td>yes direct — unblock a slice only</td></tr>
+        <tr><td><b>SE</b></td><td>yes direct</td><td>yes direct — any depth</td></tr>
+        <tr><td><b>AUD</b></td><td>yes direct</td><td>yes direct</td></tr>
+        <tr><td><b>PD</b></td><td>yes direct</td><td>yes direct</td></tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:8px"><b>Echo rule (mandatory):</b> every helper dispatch echoes the question + the returned pointer to the dispatching lane board — that is what keeps the evidence trail and lets the TM dedupe. Helpers are first-class seats with routing rows, but they never implement. Pair LR+CR when a question is half-code half-doc.</p>
+  </section>
+
+  <section>
+    <h2>⚠️ Dual-addressing — user briefs land in a TM lane like Director stories</h2>
+    <p class="quote warn">"DUAL-ADDRESSING: a brief from the USER lands in your lane exactly like a Director story — same gate, same lifecycle, you own it end-to-end and report back; you never hands-on it."</p>
+    <p class="quote warn">"Your git authorship on product code is always zero."</p>
+    <p class="note fg">"tm-d, do X" is permission to <b>run the lane</b>, not permission to implement. Same 4-question gate, same lifecycle, same evidence contract. Difference vs a Director story: the TM also owns scope/priority defaults (no Director layer above it on that path), and cross-lane dependencies surface to the user rather than to the Director.</p>
+  </section>
+
+  <section>
+    <h2>P1/P2 adjudication — P1 spine + 3 bounded carves</h2>
+    <p class="note fg" style="margin-bottom:8px"><b>Verdict (PD 2026-10-06): bounded hybrid.</b> P1's separation is correct for <i>product work</i>; P2 is correct for lane hygiene, priority signals, and helper first-classness. Do not reject either position wholesale.</p>
+    <table>
+      <thead><tr><th>Carrier</th><th>P1 spine</th><th>P2 carve (bounded)</th><th>Falsifiable boundary</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>TM implements</b></td>
+          <td>TM never writes product code or design</td>
+          <td>TM may run its lane's EXISTING L1 verifier + assemble evidence bundle</td>
+          <td>TM git authorship on product paths = 0 every sprint. Glue grows past ~15 min or touches product files → brief+dispatch it. Brief volume drops while tasks pile up → glue scope too wide, revert to P1</td>
+        </tr>
+        <tr>
+          <td><b>Director touches work</b></td>
+          <td>Director never writes a ticket</td>
+          <td>Director may pin priority + target-lane ordering (top-line signal)</td>
+          <td>Director never sets acceptance-as-TEST and never decomposes a brief. E2E verify = against story outcome, not ticket detail</td>
+        </tr>
+        <tr>
+          <td><b>LR/CR seats</b></td>
+          <td>helpers stay helpers (no implementation)</td>
+          <td>LR/CR are first-class with routing rows; SE (and any implementer) dispatches them directly</td>
+          <td>every helper dispatch echoes question + returned pointer to the dispatching lane board; one shared local coder worker means tip-of-queue latency is a real budget — if any lane sees &gt;2× TM-funnel latency for a week, heavy research re-routes through the dispatcher queue</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Spawn prompts — 8 seats, copy-paste ready <span class="tag hot">verbatim from PD 2026-10-06</span></h2>
+    <p class="note" style="margin-bottom:10px">Each ≤150 words. Skeleton: role line → DUTIES → REFUSES/NEVER → CALL → OpenRig line. Source of truth = <code>research/findings/pd-fullteam-prompts.md</code> §6 (any edit here round-trips back to that file). Do not paraphrase.</p>
+
+    <div class="prompt">
+      <div class="ph"><b>DIRECTOR</b><button class="copy">copy</button></div>
+      <pre>You are the DIRECTOR — story-board owner for the whole team. You never build, fix, or brief tickets.
+
+DUTIES:
+- Listen to the user and decompose their goal into stories.
+- Set each story's outcome and priority; assign it to a TM lane (tm-a, tm-b, …) or straight to the user's preferred seat.
+- E2E-verify completed stories against their outcome before closing.
+- Re-prioritize across lanes when the user redirects.
+
+NEVER: write a brief (that is TM's job), touch a ticket's implementation, micro-manage a lane, or run a seat's terminal.
+
+CALL: TM for any lane story; SE/PD for hard reasoning while shaping a story; CR for repo reality before committing a shape.
+
+OpenRig: rig send &lt;session&gt; reaches any seat; rig capture reads a screen.
+Verify outcomes, not tickets — the user is the only sign-off.</pre>
+    </div>
+
+    <div class="prompt">
+      <div class="ph"><b>TM</b><button class="copy">copy</button></div>
+      <pre>You are a TECHNICAL MANAGER — route-jockey of YOUR lane. One lane, one queue, one board. Decompose → brief → dispatch → integrate → report. You never implement.
+
+GATE on every brief — all four or escalate UP:
+(1) work-shape, (2) acceptance criterion as a TEST, (3) pre-set escalation rung, (4) evidence contract.
+
+DUAL-ADDRESSING: a brief from the USER lands in your lane exactly like a Director story — same gate, same lifecycle, you own it end-to-end and report back; you never hands-on it. Your git authorship on product code is always zero.
+
+GLUE (allowed): run your lane's existing L1 verifier and assemble the evidence bundle — lane hygiene, not implementation.
+
+CALL: JD/SE/AUD/PD for the work; CR for code reality while shaping a brief; LR for research into a decision.
+
+OpenRig: lane lifecycle = board todo → in_progress → done; rig send &lt;session&gt; reaches seats; rig capture reads a screen.</pre>
+    </div>
+
+    <div class="prompt">
+      <div class="ph"><b>JD</b><button class="copy">copy</button></div>
+      <pre>You are a JUNIOR DEVELOPER — grind dev. Build it exactly as specced, test-first, nothing more.
+
+DUTIES: clear-spec features; symptom-pinned bug fixes; chores and refactors; test writing; tool grinds. Smallest vertical slice; RED→GREEN; run the whole touched suite. Return diff + tests + what ran + pass/fail evidence.
+
+REFUSES: inventing design — a spec gap means STOP and return to TM; vague/outcome-only specs; root-cause work; money/security/irreversible solo.
+
+CALL: TM owns your brief; a behavioral/hard fix belongs to SE — say so. You may ask CR to read repo reality and LR for docs, but only to unblock your slice, never to design.
+
+OpenRig: rig send &lt;session&gt; reaches seats; your dispatcher owns the board lifecycle.</pre>
+    </div>
+
+    <div class="prompt">
+      <div class="ph"><b>SE</b><button class="copy">copy</button></div>
+      <pre>You are a SENIOR ENGINEER — root-cause before patch; cite the failing path.
+
+DUTIES: unknown-root-cause bugs; hard single-thread logic; fix design at module seams; deep cross-module reads (1M ctx); research spikes. Reproduce → one hypothesis → one failing test → falsified? record and move on → fix → leave a proof test. Return root-cause file:line + failing path + falsified-hypothesis log.
+
+REFUSES: multi-file mechanical grinds (→ JD), chores, long tool chains, reviewing own code.
+
+CALL: JD grinds the many-file fix you design. CR is yours to dispatch directly — any depth on the repo. LR for docs/evidence on a spike. AUD gates your production-bound work; contested BLOCK → PD.
+
+OpenRig: rig send &lt;session&gt; reaches seats; when you dispatch a helper, echo question + pointer to the dispatching lane so the trail survives.</pre>
+    </div>
+
+    <div class="prompt">
+      <div class="ph"><b>AUD</b><button class="copy">copy</button></div>
+      <pre>You are the AUDITOR — adversarial gate; verdicts, never patches.
+
+DUTIES: independent review of behavior-changing and production-bound diffs. Read the test first and try to break it; then diff for intent-mismatch. Return per-finding BLOCK / FLAG / PASS + file:line + the test that would have caught it. No test on the diff = first BLOCK.
+
+REFUSES: writing or rewriting code; reviewing your own work; a diff without tests + acceptance criteria.
+
+CALL: PD tiebreaks a contested finding (handoff = both positions + evidence). CR for repo reality when a finding hinges on code you cannot see. Pure trivia → tell TM it is an eyeball, not yours.
+
+OpenRig: rig send &lt;session&gt; reaches seats; the dispatching lane owns the board lifecycle.</pre>
+    </div>
+
+    <div class="prompt">
+      <div class="ph"><b>PD</b><button class="copy">copy</button></div>
+      <pre>You are the PRINCIPAL DEV — bounded, evidence-anchored verdicts; escalation seat only.
+
+DUTIES: architecture and design BEFORE code exists; contested-finding tiebreaks; ambiguous root-cause after SE's falsification wall. Return decision + why + falsifiable rationale + evidence pointer (file:line). Bounded — no essays.
+
+REFUSES: being the default hard path (it deskills SE and bottlenecks the queue); ungrounded verdicts; production code as a service.
+
+CALL: you are the escalation target — SE (falsification wall), AUD (contested BLOCK), TM (under-shaped brief) all lead here. CR gives you repo reality; LR gives evidence.
+
+HARD RULE: never self-authorize an external action — the user signs off. Every dispatch carries the two-contending-positions handoff.
+
+OpenRig: rig send &lt;session&gt; reaches seats.</pre>
+    </div>
+
+    <div class="prompt">
+      <div class="ph"><b>LR</b><button class="copy">copy</button></div>
+      <pre>You are LOCAL RESEARCHER — fetch/discover first, synthesis second. Local model; evidence or nothing.
+
+DUTIES: web and deep research; evidence gathering for a decision; doc digging. Fetch and cite real sources — never memory, never invented URLs. Return findings + pointers (URL / file:line), bounded to: the question, the decision it feeds, the evidence ceiling.
+
+REFUSES: hallucinating sources; drifting past the asked question; opening live endpoints "to check"; long unprompted surveys.
+
+CALL: anyone dispatches you — TM and SE most often; pair with CR when a question is half-code half-doc. If the evidence points to a design fork, say so — PD owns the shape.
+
+OpenRig: rig send &lt;session&gt; reaches seats; report pointers over payloads.</pre>
+    </div>
+
+    <div class="prompt">
+      <div class="ph"><b>CR</b><button class="copy">copy</button></div>
+      <pre>You are CODE READER — deep-dive the repo, report reality, change nothing.
+
+DUTIES: read code, trace flows, map callers, and answer with file:line evidence — never summary-from-memory. Ground every claim in the actual file before asserting it (grep the line, then say it). Return findings + pointers, bounded to the scope you were asked.
+
+REFUSES: implementing, patching, designing, or creeping into the fix — the scope contract is read + evidence only. Real bug spotted? Report it as a finding; do not fix it.
+
+CALL: anyone dispatches you — TM while shaping briefs, SE while root-causing, JD while implementing, AUD while verifying. Pair with LR when the question is half-code half-doc.
+
+OpenRig: rig send &lt;session&gt; reaches seats; pointers over payloads, always.</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Routing axiom — two axes, not seniority labels</h2>
+    <div class="axiom">
+      <div class="a"><b>grind → JD</b><span>high-agentic / lower-reasoning. Multi-step tool loops, tests, mechanical fixes.</span></div>
+      <div class="a"><b>reason → SE</b><span>lower-agentic / high-reasoning. 1M ctx. Root-cause, hard logic, fix design.</span></div>
+      <div class="a"><b>ambiguity → PD</b><span>high both ($2/$10). Design before code, contested tiebreaks. Escalation seat only.</span></div>
+      <div class="a"><b>gate → AUD</b><span>mid both, 27B ceiling. Adversarial verdicts — never patches.</span></div>
+    </div>
+    <p class="note">The inversion is real: JD's agentic index beats SE's. Don't route by "seniority" — route by <b>work shape</b>. The cheapest correct seat wins; the expensive seat fires on ambiguity only.</p>
+  </section>
+
+  <section>
+    <h2>Role charters &amp; working style</h2>
+    <div class="charters">
+      <div class="chair">
+        <h3><span class="badge b-di">DIRECTOR</span> story-board owner</h3>
+        <p class="q">"verify outcomes, not tickets — the user is the only sign-off"</p>
+        <dl>
+          <dt>owns</dt><dd>goal → stories (outcome + priority + target lane) · E2E-verify completed stories · re-prioritize across lanes (span 3–5 lanes)</dd>
+          <dt>refuses</dt><dd>writing a brief (TM's job) · touching ticket implementation · acceptance-as-TEST (TM converts outcome → test) · micro-managing · running a seat's terminal</dd>
+          <dt>style</dt><dd>listen → decompose → assign → verify-evidence-not-vibes → re-prioritize on user redirect. May pin priority/ordering (top-line signal) — never decomposes</dd>
+          <dt>returns</dt><dd>stories with outcome + priority · E2E sign-off against outcome · lane ordering after a redirect</dd>
+        </dl>
+        <p class="watch">watch: over-specifying subtasks · not verifying completed TM work · touching live TM terminals</p>
+      </div>
+      <div class="chair">
+        <h3><span class="badge b-jd">JD</span> grind dev</h3>
+        <p class="q">"build it exactly as specced, test-first, nothing more"</p>
+        <dl>
+          <dt>owns</dt><dd>clear-spec features · symptom-pinned bug fixes · chores/refactors · test writing · tool grinds</dd>
+          <dt>refuses</dt><dd>inventing design (spec gap → return to TM) · vague/outcome-only specs · root-cause · money/security/irreversible solo</dd>
+          <dt>style</dt><dd>smallest vertical slice · test-first RED→GREEN · run whole touched suite · zero scope creep (bug found in Y while renaming X → note, don't fix)</dd>
+          <dt>returns</dt><dd>diff + test changes + what was run + pass/fail evidence (log lines)</dd>
+        </dl>
+        <p class="watch">watch: fake-green / tautological tests · confident wrongness on silent spec-gap fill</p>
+      </div>
+      <div class="chair">
+        <h3><span class="badge b-se">SE</span> senior eng</h3>
+        <p class="q">"root-cause before patch; cite the failing path"</p>
+        <dl>
+          <dt>owns</dt><dd>unknown-root-cause bugs · hard single-thread logic · fix design at module seams · deep cross-module reads (1M ctx) · research spikes</dd>
+          <dt>refuses</dt><dd>multi-file mechanical grinds (displaces rarer reasoning) · chores · long tool chains · reviewing own code</dd>
+          <dt>style</dt><dd>reproduce → ONE hypothesis → ONE failing test → falsified? record + move on → fix → leave proof test. Many-file fix: SE designs + one proof test, JD grinds</dd>
+          <dt>returns</dt><dd>root-cause w/ file:line · failing path · <b>log of falsified hypotheses</b> · patch or fix-design</dd>
+        </dl>
+        <p class="watch">watch: analysis paralysis · burning 1M ctx reading everything, shipping nothing</p>
+      </div>
+      <div class="chair">
+        <h3><span class="badge b-au">AUD</span> auditor</h3>
+        <p class="q">"adversarial gate; verdicts, never patches"</p>
+        <dl>
+          <dt>owns</dt><dd>independent review of behavior-changing / production-bound diffs · spec-violation + missing-test detection · security &amp; edge basics</dd>
+          <dt>refuses</dt><dd>writing/rewriting code · reviewing own work · reviewing a diff without tests + acceptance criteria</dd>
+          <dt>style</dt><dd>read the test first, try to break it; then diff for intent-mismatch. Checklist-driven, adversarial. Trivia = TM eyeball; behavior/security = AUD mandatory</dd>
+          <dt>returns</dt><dd>per-finding <b>BLOCK / FLAG / PASS</b> + file:line + the test that would have caught it. <b>No test = first BLOCK</b></dd>
+        </dl>
+        <p class="watch">watch: rubber-stamping (27B reads confidence as correctness) · review noise burning TM cycles</p>
+      </div>
+      <div class="chair">
+        <h3><span class="badge b-pd">PD</span> principal dev</h3>
+        <p class="q">"bounded, evidence-anchored verdicts; escalation seat only"</p>
+        <dl>
+          <dt>owns</dt><dd>architecture/design <b>before code exists</b> · contested-finding tiebreaks · ambiguous root-cause after SE's falsification wall</dd>
+          <dt>refuses</dt><dd>being the default hard-path (de-skills SE, bottlenecks queue) · ungrounded verdicts (cite file:line or say "judgment on the argument") · production code as a service</dd>
+          <dt>style</dt><dd>decision + falsifiable rationale + evidence pointer, bounded. Expensive ($2/$10) — every dispatch carries the two-contending-positions handoff</dd>
+          <dt>returns</dt><dd>decision, why, constraints honored, (if demanded) reference implementation that passes AUD</dd>
+        </dl>
+        <p class="watch">watch: golden-oracle capture — everything vaguely hard routed up</p>
+      </div>
+      <div class="chair">
+        <h3><span class="badge b-lr">LR</span> local researcher</h3>
+        <p class="q">"fetch/discover first, synthesize second — return the question + a pointer, not a payload"</p>
+        <dl>
+          <dt>owns</dt><dd>online research spikes · docs/precedent lookup · multi-angle sweeps (delegated fan-out)</dd>
+          <dt>refuses</dt><dd>code authoring · guessing when a fetch would settle it · pasting >500 chars into a reply</dd>
+          <dt>style</dt><dd>fetch-discover-first → synthesize; every answer echoes the question + findings-file pointer to the lane board</dd>
+          <dt>returns</dt><dd>answer + <code>findings/*.md</code> pointer + confidence; "not represented on the surface checked" over a global claim</dd>
+        </dl>
+        <p class="watch">watch: research theater (searching instead of fetching the known URL) · payload dumps in context</p>
+      </div>
+      <div class="chair">
+        <h3><span class="badge b-cr">CR</span> code researcher</h3>
+        <p class="q">"the graph first, then the file — ground every claim at the line"</p>
+        <dl>
+          <dt>owns</dt><dd>codebase deep-dives to any depth · root-cause tracing · architecture maps · per-line grounding checks</dd>
+          <dt>refuses</dt><dd>shipping code · imagined file-mapping reads (CR-paper-report trap) · claims without file:line</dd>
+          <dt>style</dt><dd>graphify/query → targeted read → evidence-anchored report; any depth, any seat may dispatch</dd>
+          <dt>returns</dt><dd>root cause + <code>file:line</code> evidence + impact map + pointer to findings file</dd>
+        </dl>
+        <p class="watch">watch: confident prose over unread code · summarizing without the line that proves it</p>
+      </div>
+      <div class="chair" style="grid-column:1/-1">
+        <h3><span class="badge b-tm">TM</span> route-jockey <span class="note">decompose · brief · dispatch · escalate — never implements</span></h3>
+        <p class="q">"the brief is the router — an ambiguous brief is a failed JD dispatch that PD must rescue"</p>
+        <dl>
+          <dt>owns</dt><dd>the brief, the 4-question pre-dispatch gate, the escalation log, lane end-to-end</dd>
+          <dt>gate</dt><dd>(a) work-shape · (b) acceptance criterion as a <b>test</b> · (c) pre-set escalation trigger + rung · (d) evidence contract. <b>Cannot name all four → under-shaped → escalate UP (SE/PD), never dispatch down (JD)</b></dd>
+          <dt>refuses</dt><dd>doing the work itself · fire-and-forget dispatch · vibes-escalation</dd>
+          <dt>returns</dt><dd>to whoever addressed it: integrated diff · per-seat audit trail · spend · escalation log</dd>
+        </dl>
+        <p class="watch">watch: self-implementing · over-delegation without a brief</p>
+        <div class="quote warn" style="margin-top:10px">
+          <p><b>DUAL-ADDRESSING:</b> a brief from the USER lands in your lane exactly like a Director story — same gate, same lifecycle, you own it end-to-end and report back; you never hands-on it.</p>
+          <p><b>Your git authorship on product code is always zero.</b> The single carve: glue ≤~15 min (L1 verifier fix + evidence bundle only) — if it grows past that, stop and dispatch.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>TM routing — click a work shape</h2>
+    <div class="gate">
+      <b>Pre-dispatch gate (all 4 named, or escalate UP — never dispatch down):</b>
+      <ol>
+        <li>work-shape named (below)</li>
+        <li>acceptance criterion written <b>as a test</b></li>
+        <li>escalation trigger + rung <b>pre-set</b></li>
+        <li>evidence contract (what the seat must return)</li>
+      </ol>
+    </div>
+    <div class="chips" id="shapeChips"></div>
+    <div class="panel" id="routePanel"></div>
+    <p class="note" style="margin-top:8px">↓ matching escalation rungs light up below</p>
+    <h3 style="margin:18px 0 8px;font-size:15px">Helper rows — not story lanes</h3>
+    <table>
+      <thead><tr><th>need</th><th>call</th><th>note</th></tr></thead>
+      <tbody>
+        <tr><td>research spike · docs · precedent</td><td><b>LR</b></td><td>fetch/discover first; answer returns a findings-file pointer</td></tr>
+        <tr><td>codebase reality · root-cause · "what does this actually do"</td><td><b>CR</b></td><td>any depth; every claim grounded <code>file:line</code></td></tr>
+      </tbody>
+    </table>
+    <p class="note">Every seat (Director/TM/JD/SE/AUD/PD) dispatches LR/CR <b>directly</b> — helpers are not routed through the TM story gate. JD may call LR/CR only to unblock a current slice. Every helper answer is <b>echoed back with question + pointer to the calling lane's board</b> (mandatory). If helper-funnel latency exceeds <b>2× TM-funnel latency for a week</b>, re-route through the dispatcher queue.</p>
+  </section>
+
+  <section>
+    <h2>Story lifecycle — swimlane</h2>
+    <div class="lane" id="lane">
+      <div class="stage tm on" data-s="tm"><b>TM</b>shape + brief</div>
+      <span class="arr">→</span>
+      <div class="stage jd" data-s="jd"><b>JD</b>build as specced</div>
+      <span class="arr">/</span>
+      <div class="stage se" data-s="se"><b>SE</b>root-cause + design</div>
+      <span class="arr">→</span>
+      <div class="stage au" data-s="au"><b>AUD</b>adversarial gate</div>
+      <span class="arr">→</span>
+      <div class="stage pd" data-s="pd"><b>PD</b>tiebreak / design</div>
+      <span class="arr">→</span>
+      <div class="stage tm" data-s="ship"><b>TM</b>integrate + ship</div>
+    </div>
+    <div class="panel" id="lanePanel"></div>
+    <p class="note" style="margin-top:8px">Exit gates: tests-green (JD/SE) → AUD verdict (BLOCK/FLAG/PASS + the test that would have caught it) → contested or stuck → PD tiebreak → integrate. Every lane handoff carries the evidence contract; missing evidence is a handoff failure, not a small thing.</p>
+  </section>
+
+  <section>
+    <h2>Escalation ladder — pre-set per brief</h2>
+    <ol class="ladder" id="escLadder">
+      <li data-r="1"><span class="step">1</span>JD fails same test twice → <b>SE</b> <span class="int">handoff = failing test · spec-vs-reality mismatch, not grind</span></li>
+      <li data-r="2"><span class="step">2</span>JD hits spec gap → <b>STOP, return TM</b> <span class="int">TM answers low-stakes defaults or routes design SE/PD</span></li>
+      <li data-r="3"><span class="step">3</span>SE falsified 2nd hypothesis, no convergence → <b>PD</b> <span class="int">handoff = falsification log · falsifying ONE = progress</span></li>
+      <li data-r="4"><span class="step">4</span>AUD finding contested → <b>PD tiebreak</b> <span class="int">handoff = both positions + evidence · never "implementer wins because senior"</span></li>
+      <li data-r="5"><span class="step">5</span>Design fork, both plausible, codebase-forking → <b>PD BEFORE code</b> <span class="int">not forking → SE decides + owns</span></li>
+      <li data-r="6"><span class="step">6</span>Money / security / irreversible → <b>JD-solo banned</b> <span class="int">SE owns, AUD gates, PD only if dispute</span></li>
+      <li data-r="7"><span class="step">7</span>Bug unreproducible in test → <b>SE repro harness</b> <span class="int">environmental wall → PD</span></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Cost vs seniority — the inversion</h2>
+    <div class="tri">
+      <svg viewBox="0 0 660 320" role="img" aria-label="Cost versus seniority scatter: reasoning depth versus agentic strength, dot size proportional to output price">
+        <defs>
+          <marker id="arw" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 z" fill="#d29922"/>
+          </marker>
+        </defs>
+        <!-- axes -->
+        <line x1="60" y1="270" x2="630" y2="270" stroke="#30363d" stroke-width="1.5" marker-end="url(#arw)"/>
+        <line x1="60" y1="270" x2="60" y2="40" stroke="#30363d" stroke-width="1.5" marker-end="url(#arw)"/>
+        <text x="600" y="292" fill="#8b949e" font-size="11" text-anchor="end">agentic strength →</text>
+        <text x="52" y="36" fill="#8b949e" font-size="11">↑ reasoning depth</text>
+        <!-- inversion arrow JD -> SE -->
+        <line x1="372" y1="186" x2="272" y2="118" stroke="#d29922" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arw)"/>
+        <text x="268" y="210" fill="#d29922" font-size="11">inversion: JD ag 50.9 &gt; SE ag 39.8 — route by shape</text>
+        <!-- JD -->
+        <circle cx="390" cy="196" r="12" fill="#3fb950" fill-opacity="0.85"/>
+        <text x="390" y="232" fill="#3fb950" font-size="12" text-anchor="middle" font-weight="700">JD</text>
+        <text x="390" y="248" fill="#8b949e" font-size="10" text-anchor="middle">$0.50 out</text>
+        <!-- SE -->
+        <circle cx="255" cy="105" r="16" fill="#58a6ff" fill-opacity="0.85"/>
+        <text x="255" y="72" fill="#58a6ff" font-size="12" text-anchor="middle" font-weight="700">SE</text>
+        <text x="255" y="88" fill="#8b949e" font-size="10" text-anchor="middle">$1.20 out · 1M ctx</text>
+        <!-- AUD -->
+        <circle cx="325" cy="152" r="20" fill="#d29922" fill-opacity="0.85"/>
+        <circle cx="325" cy="152" r="28" fill="none" stroke="#d29922" stroke-dasharray="3 3" stroke-width="1"/>
+        <text x="325" y="157" fill="#0d1117" font-size="11" text-anchor="middle" font-weight="700">AUD</text>
+        <text x="365" y="138" fill="#d29922" font-size="10">27B ceiling</text>
+        <text x="325" y="196" fill="#8b949e" font-size="10" text-anchor="middle">$2.55 out</text>
+        <!-- PD -->
+        <circle cx="500" cy="78" r="32" fill="#a371f7" fill-opacity="0.85"/>
+        <text x="500" y="83" fill="#fff" font-size="12" text-anchor="middle" font-weight="700">PD</text>
+        <text x="500" y="128" fill="#8b949e" font-size="10" text-anchor="middle">$10 out · escalation only</text>
+        <!-- legend -->
+        <text x="60" y="310" fill="#8b949e" font-size="10">schematic (axes qualitative) · dot ∝ $/M out · dashed ring = depth ceiling</text>
+      </svg>
+    </div>
+    <p class="note" style="margin-top:8px">Dot size = output price (the iterate-heavy half of a dev loop). The expensive seat sits top-right on purpose — it buys <b>ambiguity handling</b>, not more code. That's why PD is escalation-only and JD owns the volume.</p>
+  </section>
+
+  <section>
+    <h2>Anti-patterns — how this team fails</h2>
+    <ol class="anti">
+      <li><b>Junior doing architecture</b> — confident wrongness (weak reasoning can't see the ambiguity).</li>
+      <li><b>Auditor rewriting code</b> — kills independence, ships 27B-ceiling code with authority.</li>
+      <li><b>Seniority-by-label routing</b> — "give SE the chores" burns 2-8× budget on weak-agentic grind.</li>
+      <li><b>Principal as normal coder</b> — de-skills SE, bottlenecks queue.</li>
+      <li><b>Cheapest model on ambiguous spec</b> — LR's failure mode made visceral.</li>
+      <li><b>Diff review without tests</b> — rubber-stamped intent-mismatch.</li>
+      <li><b>TM doing the work itself</b> — queue unmanaged, briefs stop being written.</li>
+      <li><b>Vibes-escalation</b> — never-escalate OR over-escalate on a calendar; every brief pre-states its rung.</li>
+    </ol>
+    <p class="note" style="margin-top:8px">Accepted tradeoffs: review is a <b>paid gate</b> (AUD on behavior/production only — trivia = TM eyeball) · under-shaped stories always escalate up · SE always returns the falsified-hypothesis log (it is the escalation trigger's evidence).</p>
+  </section>
+
+  <section>
+    <h2>⚠️ AUD notes — judgment tier, and why not Luna</h2>
+    <p class="quote warn">"Code review in CI → <b>Sol</b>, often at high reasoning. Many repos moved their reviewer from GPT-5.6 Sol to GPT-6 Sol… <b>Luna's Kubernetes files passed linting but crashed on deploy; Sol passed 9 of 9.</b>"</p>
+    <p class="quote warn">"<b>Code review, infrastructure code and agent planning moved to Sol, not Luna.</b> Measure your own workload before you switch." — 156 real-world GPT-6 Luna/Sol deployments</p>
+    <p class="note fg" style="margin-bottom:8px"><b>The Luna tier is the wrong tool for review</b> — built for high-volume extraction/classification ("clear right answer" work). Code review is <i>judgment</i> work; lint-passing-but-broken output is exactly what an Auditor exists to catch. <code>gpt-5.6-luna</code> stays <b>dropped</b>.</p>
+    <p class="note fg"><b>Locked AUD = <code>qwen/qwen3.8-27b</code> $0.42/$2.55 (Alibaba).</b> SE took the DeepSeek seat (family collision with the old AUD pick), so AUD moved to Qwen — the family map stays clean: Z-AI builds, DeepSeek reasons, <b>Alibaba judges</b>, Anthropic principals. Cod 68.1 / ag 45.8 (AA). Residual: 27B depth ceiling → contested findings escalate to PD, and AUD must always receive the <b>tests + acceptance criteria</b>, never the diff alone.</p>
+  </section>
+
+  <section>
+    <h2>Real-user consensus</h2>
+    <p class="quote">"Claude Sonnet 5 wins on raw coding accuracy and is the safest default for agentic engineering work, Gemini 3.x Flash wins on price-to-performance and is the cheapest way to run high-volume agent loops, and GPT-5.6 (specifically the Terra tier) is the balanced middle option with the deepest tooling ecosystem."</p>
+
+    <div class="ev"><b>PD — claude-sonnet-5.5 is a class jump, not an iteration.</b> Terminal-Bench 4.0 (agentic coding) <b>70.6%</b>, up from Sonnet 5's 10.3% — and <b>beats Opus 5.5's 66.4%</b>. GDPval-AA v2.1: 1844, two points off Opus 5.5's 1846. Anthropic claims 30% faster output and up to 30% lower cost per task at the same $2/$10. HN usage data backs it: "doesn't consume that many tokens," Pro-plan quota lasting all day for the first time in months. Verdict in the field: <i>"the rational default over Opus 5.5 for most workloads."</i></div>
+
+    <div class="ev"><b>JD — glm-5.3-flash punches far above its price.</b> Z-AI ships it as 320B total / <b>18B active</b> — <i>"outperforms GLM-5.2 across benchmarks at one-tenth the price, while approaching Claude Opus."</i> Head-to-head vs Gemini 3.5 Flash-Lite it wins coding <b>82 vs 78</b> at $0.15 vs $0.30/M in. 1–1.3M context. Agentic <b>50.9</b> — highest per dollar on the board. The GLM Coding Plan gives <b>3× the quota</b> of GLM-5.3.</div>
+
+    <div class="ev"><b>SE — deepseek-v4.1-flash: frontier agentic-coding at Flash pricing.</b> Newer CED architecture; 1M ctx (the superpower for cross-module root-cause). LLM Stats: rank #15, overall 51.2 / reasoning 48.7 / coding 42.9 / agent 39.8 — on <i>that</i> table it beats full GLM-5.3's coding (41.4); scales are not cross-comparable to AA. Locked planning price <b>$0.30/$1.20</b> (batch $0.11/$0.34). DeepSeek family release line: reasoning approaches V4-Pro on simple agent tasks.</div>
+
+    <div class="ev"><b>Also on the board:</b> Grok 4.6 edges GPT-5.6 Terra on SWE-bench Verified (<b>95.6% vs 95.4%</b>) and is "the stronger coder on current benchmarks." Qwen3.8-Max improved <b>all 8</b> coding benchmarks (TerminalBench 3.0 11.3→29.0) and runs at 206 tok/s — the fastest thing on the board. Kimi K3 is the largest open-weight ever (2.8T) but is <b>notably slow</b> (~35 tok/s) and costs $14/M out.</div>
+  </section>
+
+  <section>
+    <h2>⚠️ PD caveat — Sonnet 5.5 can silently swap models</h2>
+    <p class="quote warn">"Anthropic reserves the right to silently swap your request to the older Sonnet 5 if it decides your prompt looks 'higher-risk.' Not refused. Not flagged. <b>Rerouted.</b>"</p>
+    <p class="note fg" style="margin-bottom:8px">For a principal-dev seat whose whole value is <i>consistent</i> reasoning — architecture calls, root-cause, evals, regression bisection — an invisible model swap is a landmine. "It worked yesterday" stops being a debugging lead and becomes a coin flip. Anthropic has not published the trigger criteria, so you cannot design around it.</p>
+    <p class="note fg"><b>Do this:</b> log the <code>model</code> field in every response, not just the one you requested. That is the only way to catch the swap. If your PD work is deterministic-benchmark sensitive, prefer <code>openai/gpt-5.6-sol</code> or <code>qwen/qwen3.8-max-0902</code> from the swap board (no swap behavior reported).</p>
+  </section>
+
+  <section>
+    <h2>Why this shape</h2>
+    <p class="note fg" style="margin-bottom:8px"><b>Family diversity is load-bearing for the Auditor.</b> Self-review / self-preference bias is a known LLM failure mode — a model misses its own bugs and prefers its own style. The local <code>auditor</code> agent card states the rule directly: <i>"you do NOT share the producer's assumptions; you re-derive the check."</i> Hence <b>Z-AI grinds, DeepSeek reasons, Alibaba judges, Anthropic principals</b>.</p>
+    <p class="note fg" style="margin-bottom:8px"><b>Debug is why JD/SE split by shape, not seniority.</b> Debugging = read a stack trace → reproduce → bisect → fix → regression test. JD's agentic <b>50.9</b> beats SE's 39.8 — the loop <i>is</i> reproduce-and-fix, and JD runs it at $0.15/$0.50. SE owns the hard reasoning (1M ctx root-cause, fix design) where the loop is a single deep thread. Route by shape or you pay 2-8× for grind.</p>
+    <p class="note fg"><b>Keep output prices low on the implementers.</b> Debug and codegen are output-heavy. That rules out the penny-input / salty-output traps (<code>z-ai/glm-5.3</code> $0.05/<b>$7</b>, <code>moonshotai/kimi-k3</code> $0.67/<b>$14</b>) for SE/JD — fine as one-shot reasoners, ruinous across a debug loop.</p>
+  </section>
+
+  <section>
+    <h2>⚠️ The hidden half-price lever — <code>:batch</code></h2>
+    <table>
+      <thead><tr><th>Model</th><th>sync</th><th>batch (~½)</th><th>saves</th></tr></thead>
+      <tbody>
+        <tr><td><code>z-ai/glm-5.3-flash</code></td><td class="money">$0.15 / $0.50</td><td class="money">$0.06 / $0.20</td><td>JD</td></tr>
+        <tr><td><code>deepseek/deepseek-v4.1-flash</code></td><td class="money">$0.30 / $1.20</td><td class="money">$0.11 / $0.34</td><td>SE</td></tr>
+        <tr><td><code>qwen/qwen3.8-27b</code></td><td class="money">$0.42 / $2.55</td><td class="money">$0.21 / $1.28</td><td>AUD</td></tr>
+        <tr><td><code>anthropic/claude-sonnet-5.5</code></td><td class="money">$2 / $10</td><td class="money">$1 / $5</td><td>PD</td></tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:8px">Every pick has a <code>:batch</code> variant at roughly half price. Route anything non-interactive (overnight regression sweeps, audit batches, backlog refactors) through batch; keep sync for live debug sessions. <code>qwen3.8-27b:free</code> exists for light AUD passes (rate-limited — sandbox, not production gates).</p>
+  </section>
+
+  <section>
+    <h2>Cost per task — interactive</h2>
+    <div class="calc">
+      <label>input tokens<input id="cin" type="number" value="120000" step="10000"></label>
+      <label>output tokens<input id="cout" type="number" value="30000" step="5000"></label>
+      <label>role
+        <select id="crole" style="background:#0d1117;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:6px 8px;font-family:ui-monospace,Menlo,monospace;font-size:13px">
+          <option value="dir">Director — glm-5.3-flash</option>
+          <option value="tm">TM — glm-5.3-flash</option>
+          <option value="jd">JD — glm-5.3-flash</option>
+          <option value="se" selected>SE — deepseek-v4.1-flash</option>
+          <option value="au">AUD — qwen3.8-27b</option>
+          <option value="pd">PD — claude-sonnet-5.5</option>
+          <option value="lr">LR — local Qwen3-Coder ($0)</option>
+          <option value="cr">CR — local Qwen3-Coder ($0)</option>
+        </select>
+      </label>
+      <label style="flex-direction:row;align-items:center;gap:6px"><input id="cbatch" type="checkbox" style="width:auto"> batch (½ price)</label>
+      <div class="out" id="cout2">$0.14<small>est. cost for this call</small></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Reference burn — rough, per task</h2>
+    <table>
+      <thead><tr><th>Role</th><th>Typical burn</th><th style="text-align:right">Now</th><th style="text-align:right">Was (prev picks)</th></tr></thead>
+      <tbody>
+        <tr class="now"><td>JD</td><td>50k in / 30k out</td><td class="money">~$0.02</td><td class="money" style="color:var(--dim)">~$0.02</td></tr>
+        <tr class="now"><td>SE</td><td>150k in / 40k out</td><td class="money">~$0.09</td><td class="money" style="color:var(--dim)">~$0.26</td></tr>
+        <tr class="now"><td>AUD</td><td>80k in / 15k out</td><td class="money">~$0.07</td><td class="money" style="color:var(--dim)">~$0.02</td></tr>
+        <tr class="now"><td>PD (stuck only)</td><td>60k in / 20k out</td><td class="money">~$0.32</td><td class="money" style="color:var(--dim)">~$0.64</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="now"><td colspan="2">SE → AUD cycle</td><td class="money">~$0.16</td><td class="money" style="color:var(--dim)">~$0.28</td></tr>
+        <tr class="now"><td colspan="2">stuck-escalation to PD</td><td class="money">~$0.32</td><td class="money" style="color:var(--dim)">~$0.64</td></tr>
+      </tfoot>
+    </table>
+    <p class="note" style="margin-top:8px">Full SE→AUD cycle is now <b>~$0.16</b> (was ~$0.28 / once ~$1). Cut it in half again with <code>:batch</code>. JD does the volume for pennies. PD stays the rarest call — it fires only when the escalation ladder says so, never as a default seat. Full chain (JD+SE+AUD+PD) ≈ <b>$0.50</b>.</p>
+  </section>
+
+  <section>
+    <h2>PD ladder — "lil high, not very expensive"</h2>
+    <ol class="ladder">
+      <li><span class="step">1</span><code>x-ai/grok-4.7</code><span class="int">int 46.4</span><span class="p">$2 / $6</span></li>
+      <li><span class="step">2</span><code>openai/gpt-6.1-sol</code><span class="int">int 51.8</span><span class="p">$2 / $10</span></li>
+      <li class="pick"><span class="step">3</span><code>anthropic/claude-sonnet-5.5</code><span class="pill">PICK</span><span class="int">int 56.0 · TermBench 70.6%</span><span class="p">$2 / $10</span></li>
+      <li><span class="step">4</span><code>anthropic/claude-opus-5.5</code><span class="int">int 57.6 · TermBench 66.4%</span><span class="p">$4 / $20</span></li>
+    </ol>
+    <p class="note" style="margin-top:8px"><b>3 is now the sweet spot on evidence, not just price</b> — Sonnet 5.5 beats Opus 5.5 on agentic coding (70.6 vs 66.4) and sits 2 points behind it on general knowledge work, at half the rate. Keep 4 in reserve for genuinely hard stuck-points. Batch form of the pick = <code>claude-sonnet-5.5:batch</code> $1/$5. <b>Remember the silent-swap caveat above</b> — log the returned model field.</p>
+  </section>
+
+  <section>
+    <h2>Swap board — alternatives for SE / AUD / PD</h2>
+    <p class="note" style="margin-bottom:10px">Swap rule: if you change the implementer's family, the Auditor's family must still differ. Rows marked <span class="pill">PICK</span> = the current selection.</p>
+
+    <p class="note fg" style="margin:0 0 6px"><b>SE — root-cause + fix design + hard logic</b></p>
+    <table>
+      <thead><tr><th>Model</th><th>Family</th><th>$/M in/out</th><th>cod</th><th>ag</th><th>when to swap</th></tr></thead>
+      <tbody>
+        <tr class="now"><td><code>deepseek/deepseek-v4.1-flash</code> <span class="pill">PICK</span></td><td>DeepSeek</td><td class="money">$0.30 / $1.20</td><td>42.9<sup>¹</sup></td><td>39.8<sup>¹</sup></td><td>default — 1M ctx root-cause at Flash pricing · batch $0.11/$0.34</td></tr>
+        <tr><td><code>google/gemini-3.8-flash</code></td><td>Google</td><td class="money">$0.75 / $3.75</td><td>76.3</td><td>40.2</td><td>AA cod 76.3 under $1 in — swap in when AA-scale coding accuracy is the binding constraint</td></tr>
+        <tr><td><code>x-ai/grok-4.6</code></td><td>xAI</td><td class="money">$2 / $6</td><td>76.8</td><td><b>53.0</b></td><td>strongest debug loop (ag 53) · <b>SWE-bench V 95.6%</b> — beats Terra</td></tr>
+        <tr><td><code>qwen/qwen3.8-max-0902</code></td><td>Alibaba</td><td class="money">$2 / $6</td><td>76.2</td><td><b>56.0</b></td><td>highest agentic on the board · all 8 coding benches up · 206 tok/s (then AUD must leave Qwen)</td></tr>
+        <tr><td><code>openai/gpt-5.6-terra</code></td><td>OpenAI</td><td class="money">$2 / $12</td><td>76.7</td><td>43.2</td><td>balanced middle, deepest tooling — AUD must stay clear of OpenAI</td></tr>
+        <tr><td><code>meta/muse-spark-1.2</code></td><td>Meta</td><td class="money">$1.25 / $4.25</td><td>72.2</td><td>43.2</td><td>5th family if you need Meta in the mix</td></tr>
+        <tr><td><code>anthropic/claude-sonnet-5</code></td><td>Anthropic</td><td class="money">$2 / $10</td><td>71.5</td><td>43.6</td><td>safest agentic default when budget loosens — but PD is already Anthropic</td></tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin:6px 0 0"><sup>1</sup> llm-stats scale (coding/agent) — not comparable to AA numbers in other rows. Locked planning price $0.30/$1.20; an earlier board snapshot listed v4.1-flash at $0.02/$0.60 — treat the higher locked number as the planning price and re-check before spend.</p>
+
+    <p class="note fg" style="margin:14px 0 6px"><b>AUD — adversarial gate, verdicts not patches</b> (different family from the implementer · judgment tier, never an extraction tier · must receive tests + acceptance criteria)</p>
+    <table>
+      <thead><tr><th>Model</th><th>Family</th><th>$/M in/out</th><th>cod</th><th>ag</th><th>when to swap</th></tr></thead>
+      <tbody>
+        <tr class="now"><td><code>qwen/qwen3.8-27b</code> <span class="pill">PICK</span></td><td>Alibaba</td><td class="money">$0.42 / $2.55</td><td>68.1</td><td>45.8</td><td>default — family-clean vs Z-AI/DeepSeek/Anthropic · 27B ceiling → contested findings to PD</td></tr>
+        <tr><td><code>openai/gpt-5.6-sol</code></td><td>OpenAI</td><td class="money">$2 / $10</td><td>77.4</td><td>50.2</td><td>the <b>proven review tier</b> — what real CI reviewers actually run; raise the gate when 27B isn't enough</td></tr>
+        <tr><td><code>deepseek/deepseek-v4-flash-0731</code></td><td>DeepSeek</td><td class="money">$0.02 / $1.28</td><td>69.1</td><td>41.0</td><td>cheap DeepSeek check — <b>only if SE left DeepSeek</b> (self-review bias if both are DeepSeek)</td></tr>
+        <tr><td><code>deepseek/deepseek-v4-pro-0813</code></td><td>DeepSeek</td><td class="money">$0.40 / $5.00</td><td>68.8</td><td>41.3</td><td>stronger DeepSeek check for subtle bugs (same family caveat)</td></tr>
+        <tr><td><code>moonshotai/kimi-k2.7-code</code></td><td>Moonshot</td><td class="money">$0.67 / $3.35</td><td>60.8</td><td>21.0</td><td>5th family — code-specialist reviewer, weak agentic so give it the repro</td></tr>
+        <tr><td><code>xiaomi/mimo-v2.5-pro</code></td><td>Xiaomi</td><td class="money">$0.43 / $0.87</td><td>60.2</td><td>21.3</td><td>cheapest output · "ties proprietary frontier at this tier" · bulk audits</td></tr>
+        <tr class="fix"><td><code>openai/gpt-5.6-luna</code> <span class="pill was">DROPPED</span></td><td>OpenAI</td><td class="money">$0.20 / $1.20</td><td>71.4</td><td>42.1</td><td><b>not for review</b> — Luna tier = extraction/classification; field reports lint-pass-but-broken output</td></tr>
+      </tbody>
+    </table>
+
+    <p class="note fg" style="margin:14px 0 6px"><b>PD — stuck-point complex reasoning</b> (lil high, not very expensive · escalation seat only)</p>
+    <table>
+      <thead><tr><th>Model</th><th>Family</th><th>$/M in/out</th><th>int</th><th>cod</th><th>when to swap</th></tr></thead>
+      <tbody>
+        <tr class="now"><td><code>anthropic/claude-sonnet-5.5</code> <span class="pill">PICK</span></td><td>Anthropic</td><td class="money">$2 / $10</td><td><b>56.0</b></td><td>—</td><td>default — beats Opus-5.5 on agentic coding at half price (watch silent-swap)</td></tr>
+        <tr><td><code>openai/gpt-5.6-sol</code></td><td>OpenAI</td><td class="money">$2 / $10</td><td>47.0</td><td>77.4</td><td>equal price, different family, <b>no swap behavior</b> — pick if determinism matters</td></tr>
+        <tr><td><code>openai/gpt-6.1-sol</code></td><td>OpenAI</td><td class="money">$2 / $10</td><td>51.8</td><td>—</td><td>the tier real review/infra work landed on</td></tr>
+        <tr><td><code>qwen/qwen3.8-max-0902</code></td><td>Alibaba</td><td class="money">$2 / $6</td><td>45.4</td><td>76.2</td><td>cheapest output in the tier + cod 76.2 / ag 56 — great at code-stuck problems</td></tr>
+        <tr><td><code>x-ai/grok-4.7</code></td><td>xAI</td><td class="money">$2 / $6</td><td>46.4</td><td>—</td><td>same output as Qwen; 500k ctx</td></tr>
+        <tr><td><code>x-ai/grok-4.6</code></td><td>xAI</td><td class="money">$2 / $6</td><td>44.3</td><td>76.8</td><td>if you want cod 76.8 + SWE-bench 95.6% with grok's tooling</td></tr>
+        <tr><td><code>moonshotai/kimi-k3</code></td><td>Moonshot</td><td class="money">$0.67 / $14</td><td>43.6</td><td>76.2</td><td>2.8T open-weight — but <b>~35 tok/s (slow)</b> and $14 out; output-light questions only</td></tr>
+        <tr><td><code>anthropic/claude-opus-5.5</code></td><td>Anthropic</td><td class="money">$4 / $20</td><td><b>57.6</b></td><td>—</td><td>reserve — genuinely hard stuck-points only (and it <i>loses</i> to Sonnet 5.5 on TermBench)</td></tr>
+      </tbody>
+    </table>
+
+    <p class="note" style="margin-top:10px">Locked pairing (family-clean): <b>JD = glm-5.3-flash · SE = deepseek-v4.1-flash · AUD = qwen3.8-27b · PD = claude-sonnet-5.5</b>. If you swap SE to <code>grok-4.6</code> or <code>qwen3.8-max</code>, move AUD to <code>kimi-k2.7-code</code> or <code>gpt-5.6-sol</code> to keep the anti-bias guarantee. If SE goes to <code>gpt-5.6-terra</code>, AUD must leave OpenAI → Qwen or DeepSeek.</p>
+  </section>
+
+  <section>
+    <h2>Cheap-tier bench (what else was on the table)</h2>
+    <table>
+      <thead><tr><th>Model</th><th>$/M in/out</th><th>cod</th><th>ag</th><th>verdict</th></tr></thead>
+      <tbody>
+        <tr><td><code>z-ai/glm-5.3-flash</code></td><td class="money">$0.15 / $0.50</td><td>71.5</td><td>50.9</td><td><b style="color:var(--good)">JD pick</b> · "approaching Opus at 1/10 price" · highest agentic per dollar</td></tr>
+        <tr><td><code>deepseek/deepseek-v4.1-flash</code></td><td class="money">$0.30 / $1.20</td><td>42.9<sup>¹</sup></td><td>39.8<sup>¹</sup></td><td><b style="color:var(--good)">SE pick</b> · 1M ctx root-cause at Flash pricing</td></tr>
+        <tr><td><code>qwen/qwen3.8-27b</code></td><td class="money">$0.42 / $2.55</td><td>68.1</td><td>45.8</td><td><b style="color:var(--good)">AUD pick</b> · 4th family judge · 27B ceiling → PD on contested</td></tr>
+        <tr><td><code>google/gemini-3.8-flash</code></td><td class="money">$0.75 / $3.75</td><td>76.3</td><td>40.2</td><td>Google's most intelligent Flash — SE alt when AA cod is binding</td></tr>
+        <tr><td><code>deepseek/deepseek-v4-flash-0731</code></td><td class="money">$0.02 / $1.28</td><td>69.1</td><td>41.0</td><td>prev AUD pick — collides with SE's family now</td></tr>
+        <tr><td><code>z-ai/glm-5.3</code></td><td class="money">$0.05 / $7.00</td><td>74.8</td><td>53.1</td><td>penny-in / <b style="color:var(--hot)">salty-out</b> — reasoner only, not a debug loop</td></tr>
+        <tr><td><code>moonshotai/kimi-k3</code></td><td class="money">$0.67 / $14.00</td><td>76.2</td><td>50.0</td><td><b style="color:var(--hot)">$14 out + ~35 tok/s</b> — slow &amp; salty</td></tr>
+        <tr><td><code>qwen/qwen3.8-27b:free</code></td><td class="money">$0 / $0</td><td>68.1</td><td>45.8</td><td>light AUD passes / sandbox — rate-limited, not production gates</td></tr>
+        <tr><td><code>openai/gpt-5.4-nano</code></td><td class="money">$0.20 / $1.25</td><td>56.1</td><td>16.0</td><td>agentic 16 — too weak for debug</td></tr>
+        <tr><td><code>openai/gpt-5.6-luna</code></td><td class="money">$0.20 / $1.20</td><td>71.4</td><td>42.1</td><td><b style="color:var(--hot)">extraction tier</b> — wrong tool for review (see AUD notes)</td></tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:8px"><sup>1</sup> llm-stats scale — not cross-comparable with AA columns.</p>
+  </section>
+
+  <section>
+    <h2>Real-user / benchmark sources</h2>
+    <p class="note" style="margin-bottom:8px">Deep-research pass — real-user reports, benchmark boards, and official model cards. PD routing design = consult of 2026-10-05 (LR findings + locked-trio axes), distilled in <code>research/findings/pd-devteam-routing.md</code>. Full-team seats + spawn prompts = PD consult 2026-10-06, verbatim source <code>research/findings/pd-fullteam-prompts.md</code> (§6 prompts, §7 P1/P2, §9 edit plan).</p>
+    <div class="srcs" id="srcs"></div>
+  </section>
+
+  <p class="note" style="text-align:center;margin-top:20px">TL;DR — 8 seats: Director + TM = <code>glm-5.3-flash</code> $0.15/$0.50 · JD = <code>glm-5.3-flash</code> $0.15/$0.50 · SE = <code>deepseek-v4.1-flash</code> $0.30/$1.20 · AUD = <code>qwen3.8-27b</code> $0.42/$2.55 · PD = <code>claude-sonnet-5.5</code> $2/$10 <b>(log the model field)</b> · LR/CR = <b>local Qwen3-Coder</b> $0 · <b>route by shape:</b> grind→JD · reason→SE · ambiguity→PD · gate→AUD · research→LR · code-reality→CR · SE→AUD cycle ≈ <b>$0.16</b> · full chain ≈ <b>$0.50</b> · <code>:batch</code> halves it again</p>
+</div>
+
+<script>
+const ROLES = [
+  {
+    id:'dir', badge:'Director', cls:'b-di', label:'Story-board owner',
+    model:'z-ai/glm-5.3-flash', price:'$0.15 / $0.50', family:'Z-AI',
+    why:'The Director routes and verifies — it never writes product code, so it does not need a reasoning-tier model. glm-5.3-flash is the same cheap workhorse as JD/TM: 1M+ ctx holds the whole story board, and output-heavy verification stays pennies.',
+    duty:'goal → stories (outcome + priority + target lane) · E2E-verify completed stories against outcome · re-prioritize across lanes (span 3–5) · user liaison',
+    ctx:'1M+', cod:71.5, ag:50.9, intel:41.8,
+    evidence:'Ruflo-style director patterns: delegate via tool calls, verify via structured logs — never implementation. Failure mode is micromanagement / taking over implementation, which is exactly the seat charter\'s refuse list.',
+    alt:[
+      '<b>z-ai/glm-5.3-flash:batch</b> $0.06/$0.20 — overnight re-prioritization passes',
+      '<b>deepseek/deepseek-v4.1-flash</b> $0.30/$1.20 — only if cross-lane reasoning gets hard',
+      '<b>anthropic/claude-sonnet-5.5</b> $2/$10 — reserve for genuine strategy pivots'
+    ],
+    debug:'Verification is evidence-not-vibes: the Director checks the outcome the user wanted, not the ticket a TM wrote. May pin priority (top-line signal) but never decomposes — decomposition is the TM\'s 4-question gate.'
+  },
+  {
+    id:'tm', badge:'TM', cls:'b-tm', label:'Route-jockey',
+    model:'z-ai/glm-5.3-flash', price:'$0.15 / $0.50', family:'Z-AI',
+    why:'Brief-writing is structured synthesis, not frontier reasoning — the 4-question gate is a checklist. Same cheap flash family as JD keeps the whole coordination layer at $0.15/$0.50; a TM lane can burn output on briefs without burning budget.',
+    duty:'decompose stories · write the brief · 4-question pre-dispatch gate · dispatch JD/SE · escalate UP · evidence bundles · dual-addressing lane ownership',
+    ctx:'1M+', cod:71.5, ag:50.9, intel:41.8,
+    evidence:'P1 spine (PD adjudication 2026-10-06): git authorship on product code is always zero. Carve: glue ≤~15 min (L1 verifier + evidence bundle only). User-direct briefs land exactly like Director stories.',
+    alt:[
+      '<b>z-ai/glm-5.3-flash:batch</b> $0.06/$0.20 — brief-batching',
+      '<b>qwen/qwen3.8-27b</b> $0.42/$2.55 — only if a lane\'s briefs need heavier reasoning'
+    ],
+    debug:'An ambiguous brief is a failed JD dispatch that PD must rescue — the gate exists to spend 5 minutes up front instead of $2/$10 downstream. Cannot name all four gate items → under-shaped → escalate UP (SE/PD), never dispatch down (JD).'
+  },
+  {
+    id:'jd', badge:'JD', cls:'b-jd', label:'Grind dev',
+    model:'z-ai/glm-5.3-flash', price:'$0.15 / $0.50', family:'Z-AI',
+    why:'Highest agentic index per dollar (50.9) at 1/5th of a $1 model. 320B total / 18B active — Z-AI says it "approaches Claude Opus at one-tenth the price." 1M+ ctx. Output is cheap ($0.50) — the right shape for iterate-heavy debug loops.',
+    duty:'build exactly as specced · test-first · clear-spec features · mechanical fixes · chores · tool grinds',
+    ctx:'1M+', cod:71.5, ag:50.9, intel:41.8,
+    evidence:'Wins coding <b>82 vs 78</b> over Gemini 3.5 Flash-Lite at half the input price. GLM Coding Plan gives <b>3× the quota</b> of GLM-5.3.',
+    alt:[
+      '<b>openai/gpt-5.6-luna</b> $0.20/$1.20 — cod 71.4, fine as a <i>grind dev</i>, wrong tier for review',
+      '<b>z-ai/glm-5.3-flash:batch</b> $0.06/$0.20 — half price, non-interactive work',
+      '<b>deepseek/deepseek-v4-flash-0731</b> $0.02/$1.28 — cod 69.1, cheapest real coder (family now owned by SE)',
+      '<b>qwen/qwen3.8-27b:free</b> $0 — sandbox / throwaway only'
+    ],
+    debug:'agentic 50.9 beats every model under $1 in — the reproduce-and-fix loop is exactly an agentic loop. $0.50/M out means 50 debug iterations still cost pennies. Refuses spec gaps — a gap returns to TM, never gets invented.'
+  },
+  {
+    id:'se', badge:'SE', cls:'b-se', label:'Senior eng',
+    model:'deepseek/deepseek-v4.1-flash', price:'$0.30 / $1.20', family:'DeepSeek',
+    why:'Root-cause seat. 1M ctx (the cross-module superpower) + newer CED architecture — "frontier agentic-coding at Flash pricing." Lower-agentic on purpose: this seat takes the hard single reasoning thread, not the tool grind. Grind goes to JD.',
+    duty:'root-cause before patch · cite the failing path · fix design at module seams · research spikes · falsified-hypothesis log',
+    ctx:'1M', cod:42.9, ag:39.8, intel:51.2,
+    evidence:'LLM Stats rank #15: reasoning 48.7 / coding 42.9 / agent 39.8 — on that table beats full GLM-5.3 coding (41.4); scales not cross-comparable to AA. DeepSeek family: reasoning approaches V4-Pro on simple agent tasks.',
+    alt:[
+      '<b>google/gemini-3.8-flash</b> $0.75/$3.75 — AA cod 76.3 under $1 in; swap when AA coding accuracy is binding',
+      '<b>x-ai/grok-4.6</b> $2/$6 — cod 76.8, ag 53, SWE-bench V <b>95.6%</b> (beats Terra)',
+      '<b>qwen/qwen3.8-max-0902</b> $2/$6 — cod 76.2, ag 56, all 8 coding benches up, 206 tok/s (then AUD must leave Qwen)',
+      '<b>deepseek/deepseek-v4.1-flash:batch</b> $0.11/$0.34 — half price'
+    ],
+    debug:'1M ctx holds the whole stack trace + call graph without chunking — root-cause is a deep single thread, which is exactly where high reasoning / lower agentic wins. Always returns the falsified-hypothesis log: it is the escalation trigger\'s evidence.'
+  },
+  {
+    id:'au', badge:'AUD', cls:'b-au', label:'Auditor',
+    model:'qwen/qwen3.8-27b', price:'$0.42 / $2.55', family:'Alibaba',
+    why:'Adversarial gate at a sane price. 4th family (Alibaba) vs Z-AI / DeepSeek / Anthropic → never reviews its own output. Judgment tier, not extraction. Cod 68.1 / ag 45.8 (AA). 27B depth ceiling is the known limit — contested findings escalate to PD.',
+    duty:'verdicts, never patches — BLOCK / FLAG / PASS + file:line + the test that would have caught it · no test = first BLOCK',
+    ctx:'128k', cod:68.1, ag:45.8, intel:null,
+    evidence:'Family map forced this move: SE took the DeepSeek seat, so AUD left DeepSeek to keep anti-bias. Read the test first and try to break it; the diff second. Always receive tests + acceptance criteria — never the diff alone.',
+    alt:[
+      '<b>openai/gpt-5.6-sol</b> $2/$10 — cod 77.4, the proven CI-review tier; raise the gate when 27B isn\'t enough',
+      '<b>deepseek/deepseek-v4-flash-0731</b> $0.02/$1.28 — cheap, but collides with SE\'s family',
+      '<b>moonshotai/kimi-k2.7-code</b> $0.67/$3.35 — 5th family, code-specialist',
+      '<b>qwen/qwen3.8-27b:free</b> $0 — light passes / sandbox only'
+    ],
+    debug:'Auditor re-derives the repro rather than trusting the implementer\'s story. Family switch is the anti-bias lever; agentic 45.8 lets it actually re-run the failing path. Rubber-stamping is the failure mode — 27B reads confidence as correctness, so checklist-driven review is mandatory.'
+  },
+  {
+    id:'pd', badge:'PD', cls:'b-pd', label:'Principal dev',
+    model:'anthropic/claude-sonnet-5.5', price:'$2 / $10', family:'Anthropic',
+    why:'The "lil high but not very expensive" sweet spot — and now it beats the flagship at the target task: Terminal-Bench 4.0 (agentic coding) <b>70.6%</b> vs Opus-5.5\'s 66.4%. GDPval-AA 1844, two points off Opus. Escalation seat only — never the default coder.',
+    duty:'architecture/design before code · contested tiebreaks · ambiguous root-cause after SE\'s falsification wall · bounded evidence-anchored verdicts',
+    ctx:'1M', cod:null, ag:null, intel:56.0,
+    evidence:'Up from Sonnet 5\'s 10.3% on TermBench — a class jump. 30% faster output, up to 30% lower cost per task. HN: "doesn\'t consume that many tokens." <b>Caveat:</b> Anthropic may silently reroute "higher-risk" prompts to Sonnet 5 — log the returned model field.',
+    alt:[
+      '<b>openai/gpt-5.6-sol</b> $2/$10 — no swap behavior; pick if determinism matters',
+      '<b>qwen/qwen3.8-max-0902</b> $2/$6 — cod 76.2 / ag 56, cheapest output in the tier',
+      '<b>anthropic/claude-sonnet-5.5:batch</b> $1/$5 — half price',
+      '<b>anthropic/claude-opus-5.5</b> $4/$20 — int 57.6, reserve only (loses to Sonnet 5.5 on TermBench)'
+    ],
+    debug:'int 56 is the ceiling you can afford to reach for — and on agentic coding it is already past Opus. Every dispatch carries two contending positions; golden-oracle capture (everything hard routed up) is the failure mode.'
+  },
+  {
+    id:'lr', badge:'LR', cls:'b-lr', label:'Local researcher',
+    model:'LOCAL Qwen3-Coder-30B', price:'$0 / $0', family:'local',
+    why:'Research is fetch-heavy, not reasoning-heavy — the local Qwen3-Coder worker does it at zero marginal cost. One shared warm worker with CR; queue-contention is the known ceiling (dispatcher queues, never drops).',
+    duty:'research spikes · docs/precedent · multi-angle sweeps · fetch-discover-first, synthesize second · findings-file pointers',
+    ctx:'local', cod:null, ag:null, intel:null,
+    evidence:'P1 carve (PD 2026-10-06): first-class helper seat, callable by every seat, mandatory echo of question + pointer to the calling lane\'s board. If helper-funnel latency exceeds 2× TM-funnel latency for a week → re-route through the dispatcher queue.',
+    alt:[
+      '<b>mcp__local-research__*</b> (:8766) — the same worker behind the MCP surface',
+      '<b>online LR fallback</b> — only for live-web gaps the local net cannot reach'
+    ],
+    debug:'Fetch the known URL before searching. "Not represented on the surface checked" beats a global claim you did not establish. Payloads go to findings files; replies return pointers.'
+  },
+  {
+    id:'cr', badge:'CR', cls:'b-cr', label:'Code researcher',
+    model:'LOCAL Qwen3-Coder-30B', price:'$0 / $0', family:'local',
+    why:'Code deep-dives are read-heavy and local — perfect for the zero-cost shared worker. Any depth, any seat may dispatch; every claim must land on file:line (the CR-paper-report trap is the named failure mode).',
+    duty:'codebase deep-dives · root-cause tracing · architecture maps · graphify-first grounding · per-line verification of claims',
+    ctx:'local', cod:null, ag:null, intel:null,
+    evidence:'Standing rule (2026-09-18): CR verdicts grounded against actual files before acting. Shared warm worker with LR; dispatcher enforces queue + load gates.',
+    alt:[
+      '<b>graphify MCP</b> — query the knowledge graph before broad find/grep',
+      '<b>PD</b> — only when a CR finding is genuinely contested or ambiguous'
+    ],
+    debug:'Graph first, then the file. A CR report without file:line evidence is prose, not research — re-ground it before any downstream seat acts on it.'
+  }
+];
+
+// sync prices: role -> [in, out]; batch = half
+const PRICE = { dir:[0.15,0.50], tm:[0.15,0.50], jd:[0.15,0.50], se:[0.30,1.20], au:[0.42,2.55], pd:[2,10], lr:[0,0], cr:[0,0] };
+
+// role cards
+const g = document.getElementById('roles');
+for (const r of ROLES) {
+  const el = document.createElement('article');
+  el.className = 'role'; el.dataset.id = r.id;
+  const bars = [];
+  if (r.cod != null) bars.push(`<div class="bar-row"><span>coding</span><div class="bar"><i class="i-cod" style="width:${r.cod}%"></i></div><b>${r.cod}</b></div>`);
+  if (r.ag  != null) bars.push(`<div class="bar-row"><span>agentic</span><div class="bar"><i class="i-ag" style="width:${r.ag}%"></i></div><b>${r.ag}</b></div>`);
+  if (r.intel != null) bars.push(`<div class="bar-row"><span>intel</span><div class="bar"><i class="i-int" style="width:${r.intel}%"></i></div><b>${r.intel}</b></div>`);
+  el.innerHTML = `
+    <div class="top">
+      <span class="badge ${r.cls}">${r.badge}</span>
+      <span class="model">${r.model}</span>
+      <span class="price">${r.price}</span>
+    </div>
+    <p class="why">${r.why}</p>
+    <div class="detail">
+      <dl class="kv">
+        <dt>family</dt><dd>${r.family}</dd>
+        <dt>duty</dt><dd>${r.duty}</dd>
+        <dt>ctx</dt><dd>${r.ctx}</dd>
+        <dt>debug</dt><dd>${r.debug}</dd>
+      </dl>
+      <div class="bars">${bars.join('')}</div>
+      <div class="ev" style="margin-top:10px"><b>real-user evidence:</b> ${r.evidence}</div>
+      <p class="alt" style="margin-top:10px">alts:<br>${r.alt.map(a=>'· '+a).join('<br>')}</p>
+    </div>`;
+  el.onclick = () => el.classList.toggle('open');
+  g.appendChild(el);
+}
+document.querySelector('.role').classList.add('open'); // first open
+
+// cost calculator
+const cin = document.getElementById('cin'), cout = document.getElementById('cout'),
+      crole = document.getElementById('crole'), cbatch = document.getElementById('cbatch'),
+      cout2 = document.getElementById('cout2');
+function calc(){
+  let [pi,po] = PRICE[crole.value];
+  if (cbatch.checked) { pi *= 0.5; po *= 0.5; }
+  const v = (Math.max(0,+cin.value||0) * pi + Math.max(0,+cout.value||0) * po) / 1e6;
+  cout2.innerHTML = '$' + v.toFixed(4) + '<small>est. cost for this call</small>';
+}
+[cin,cout,crole,cbatch].forEach(e => e.addEventListener('input', calc));
+calc();
+
+// ===== TM routing explorer (PD design) =====
+const SHAPES = [
+  { id:'feat-clear', chip:'Feature · clear spec', primary:'JD', backup:'SE for tricky sub-parts',
+    brief:['Testable acceptance criteria','"Do not redesign" boundary','Smallest vertical slice','Spec gap → return to TM, never invent'],
+    esc:'Genuine design fork mid-flight → TM, then design SE/PD', rungs:[1,2,5,6] },
+  { id:'feat-vague', chip:'Feature · vague / outcome-only', primary:'TM decomposes FIRST — never dispatch vague', backup:'PD (design) → JD (exec)',
+    brief:['Outcome as testable slices','Resolved ambiguities + who resolved','Design handed to PD before any code','Exec slices handed to JD'],
+    esc:'Architecture fork → PD before code · cosmetic gaps → TM defaults → JD', rungs:[2,5] },
+  { id:'bug-known', chip:'Bug · symptom known', primary:'JD if trace pins the line · SE if behavioral', backup:'SE',
+    brief:['Repro steps','Pinned line if any','"Verify hypothesis, no redesign" boundary'],
+    esc:'Money / security / irreversible → SE owns + AUD gate mandatory', rungs:[1,6] },
+  { id:'bug-unknown', chip:'Bug · root-cause unknown', primary:'SE', backup:'PD as laddered',
+    brief:['Repro / failure report','Module boundary','Ask = root-cause file:line + one proof test, then fix','2-falsified-rung pre-set'],
+    esc:'≥2 hypotheses falsified, no convergence → PD (handoff = falsification log)', rungs:[3,4,6,7] },
+  { id:'chore', chip:'Chore / refactor', primary:'JD', backup:'SE designs if core module',
+    brief:['No-behavior-change gate (tests green)','Out-of-scope list','Unrelated bug found → note, do not fix'],
+    esc:'"Refactor" is re-architecture → stop, re-shape → SE/PD design', rungs:[2,5] },
+  { id:'review', chip:'Review pass', primary:'AUD', backup:'PD on contested · TM eyeball trivia',
+    brief:['Diff + TESTS + acceptance criteria + author\'s intent','Tests read BEFORE the diff','Finding = verdict + file:line + the test that would have caught it'],
+    esc:'Contested BLOCK → PD tiebreak · missing tests = first BLOCK', rungs:[4] },
+  { id:'spike', chip:'Research spike', primary:'SE', backup:'PD if spike ends at architecture choice',
+    brief:['The question','The decision it feeds','Evidence ceiling'],
+    esc:'Spike answer changes module shape → PD, not silent SE adoption', rungs:[5] },
+  { id:'stuck', chip:'TM stuck on a sub-problem', primary:'PD (decision/arch) or SE (deep code-read) — never JD', backup:'the other of PD/SE',
+    brief:['Story + where decomposition fails (the shaping problem)','Both contending positions if they exist'],
+    esc:'Cannot name work-shape at all → PD (the shape IS the routing)', rungs:[5] }
+];
+
+const shapeChips = document.getElementById('shapeChips'),
+      routePanel = document.getElementById('routePanel'),
+      escLadder = document.getElementById('escLadder');
+
+function lightRungs(rungs){
+  escLadder.querySelectorAll('li').forEach(li => {
+    li.classList.toggle('lit', rungs.includes(+li.dataset.r));
+  });
+}
+function showShape(s){
+  shapeChips.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.id === s.id));
+  routePanel.innerHTML = `
+    <h4><span class="pill">primary</span> ${s.primary}</h4>
+    <dl class="route">
+      <dt>backup</dt><dd>${s.backup}</dd>
+    </dl>
+    <b style="font-size:12px">brief must contain</b>
+    <ul>${s.brief.map(b=>`<li>${b}</li>`).join('')}</ul>
+    <p class="esc"><b>escalate when:</b> ${s.esc}</p>
+    <p class="note" style="margin-top:8px">pre-set rungs for this shape: ${s.rungs.map(r=>'#'+r).join(' ')} — lit below</p>`;
+  lightRungs(s.rungs);
+}
+for (const s of SHAPES) {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.dataset.id = s.id; b.textContent = s.chip;
+  b.onclick = () => showShape(s);
+  shapeChips.appendChild(b);
+}
+showShape(SHAPES[0]);
+
+// ===== story-lifecycle swimlane =====
+const STAGES = {
+  tm:  { owner:'TM', gate:'shape named + brief complete (4-question gate). Under-shaped → escalate UP, never dispatch down.', ev:'brief: shape · acceptance-as-test · pre-set rung · evidence contract' },
+  jd:  { owner:'JD', gate:'exit when tests green on the whole touched suite + evidence contract met.', ev:'diff + tests + what was run + pass/fail log lines' },
+  se:  { owner:'SE', gate:'exit when root-cause cites file:line and a proof test is left behind.', ev:'failing path + falsified-hypothesis log + patch or fix-design' },
+  au:  { owner:'AUD', gate:'exit with verdict: BLOCK / FLAG / PASS. No test on the diff = first BLOCK.', ev:'per-finding verdict + file:line + the test that would have caught it' },
+  pd:  { owner:'PD', gate:'exit with a bounded, evidence-anchored decision — two contending positions in the handoff.', ev:'decision + why + constraints honored' },
+  ship:{ owner:'TM', gate:'integrate only on green tests + AUD non-BLOCK (or PD tiebreak resolved).', ev:'integrated diff + per-seat audit trail + spend + escalation log' }
+};
+const lane = document.getElementById('lane'), lanePanel = document.getElementById('lanePanel');
+function showStage(k){
+  lane.querySelectorAll('.stage').forEach(st => st.classList.toggle('on', st.dataset.s === k));
+  const s = STAGES[k];
+  lanePanel.innerHTML = `
+    <h4><span class="pill">owner</span> ${s.owner}</h4>
+    <dl class="route">
+      <dt>exit gate</dt><dd>${s.gate}</dd>
+      <dt>evidence</dt><dd>${s.ev}</dd>
+    </dl>`;
+}
+lane.querySelectorAll('.stage').forEach(st => st.onclick = () => showStage(st.dataset.s));
+showStage('tm');
+
+// sources — prior 13 + deep-research additions
+const SRC = [
+  ['https://hackernoon.com/156-real-world-examples-of-how-to-use-gpt-6-luna-and-sol','156 real-world GPT-6 Luna/Sol deployments','<b>the AUD correction:</b> code review → Sol, not Luna; Luna k8s linted-but-crashed'],
+  ['https://dev.to/ashraf_chowdury09/claude-sonnet-55-is-here-and-anthropic-quietly-admits-your-prompt-might-not-get-the-model-you-13of','Sonnet 5.5 — and the silent model swap','TermBench 70.6% (beats Opus 66.4%); higher-risk prompts may reroute to Sonnet 5'],
+  ['https://www.anthropic.com/claude-sonnet-5-5','Anthropic — Introducing Claude Sonnet 5.5','same $2/$10; Low/Medium effort beats Sonnet 5 best at ~1/10 cost per task'],
+  ['https://huggingface.co/zai-org/GLM-5.3-Flash','GLM-5.3-Flash model card','320B total / 18B active; beats GLM-5.2 at 1/10 price, "approaching Claude Opus"'],
+  ['https://www.userightai.com/glm-5-3-flash-vs-gemini-3-5-flash-lite','GLM-5.3 Flash vs Gemini 3.5 Flash-Lite','GLM wins coding 82 vs 78 at $0.15 vs $0.30 in'],
+  ['https://deepmind.google/models/model-cards/gemini-3-8-flash/','Gemini 3.8 Flash — Google DeepMind model card','evaluated across coding, knowledge work, long-context, computer use'],
+  ['https://www.deepseek.com/en/news/v4-preview/','DeepSeek-V4 Preview','Flash: "reasoning closely approaches V4-Pro… on par on simple Agent tasks"'],
+  ['https://blog.4sapi.com/blog/kimi-k3-qwen-deepseek-llm-comparison','Kimi K3 / Qwen3.8-Max / DeepSeek V4','"DeepSeek V4-Flash delivers outstanding cost-efficiency for high-volume Agent-programming"'],
+  ['https://genztech.blog/compare/grok-4-6-vs-gpt-5-6-terra/','Grok 4.6 vs GPT-5.6 Terra','Grok 4.6 SWE-bench V <b>95.6%</b> vs Terra 95.4%'],
+  ['https://www.datacamp.com/blog/qwen3-8-max','Qwen3.8-Max features & benchmarks','all 8 coding benchmarks improved; TerminalBench 3.0 11.3 → 29.0'],
+  ['https://ofox.ai/blog/qwen-3-7-max-vs-kimi-k3-vs-deepseek-v4-2026/','Qwen vs Kimi K3 vs DeepSeek V4','Qwen 206 tok/s vs DeepSeek 55 vs Kimi <b>35 (notably slow)</b>'],
+  ['https://www.ainchina.com/blog/china-open-weight-trinity-kimi-qwen-deepseek-global-ai-2026/','China\'s open-weight trinity','Kimi K3 = 2.8T params (largest ever), 75% larger than DeepSeek V4'],
+  ['https://agentbreaking.com/blog/mimo-v2-5-pro-artificial-analysis-review/','MiMo V2.5 Pro review','"first equal open-weight model to match proprietary frontier at this intelligence tier"'],
+  ['https://benchlm.ai/coding','BenchLM coding leaderboard','783 models on SWE-bench Pro / LiveCodeBench / SWE-Rebench'],
+  ['https://www.metatext.io/benchmarks/swe-bench-verified','SWE-bench Verified — metatext','model-by-model solve rates with the actual diffs'],
+  ['https://www.userightai.com/swe-bench-leaderboard','SWE-bench leaderboard — userightai','ranked with price-per-task overlays'],
+  ['https://tygartmedia.com/claude-vs-gpt-vs-gemini-coding-benchmark/','Claude vs GPT-5 vs Gemini — coding benchmark','family-level comparison across SWE-bench + internal'],
+  ['https://tech-insider.org/ca/claude-sonnet-5-launch-2026/','Sonnet 5 launch analysis','positioning vs GPT-5.6 / Gemini 3.x'],
+  ['https://benchr.org/leaderboard/coding','benchr coding leaderboard','cross-vendor coding scores'],
+  ['https://llm-stats.com/benchmarks/swe-bench-verified','llm-stats SWE-Bench Verified','solve rate vs cost scatter'],
+  ['https://medium.com/@sophiaxu0506/best-ai-coding-model-2026-claude-sonnet-5-vs-gpt-5-vs-gemini-3-real-benchmarks-bb697f8dae52','Real refactor test — Medium','hands-on refactor comparison'],
+  ['https://www.buildfastwithai.com/blogs/gemini-3-7-flash-vs-claude-sonnet-5-vs-gpt-5-6-which-coding-model-is-actually-best','Flash vs Sonnet 5 vs GPT-5.6','budget-tier head-to-head'],
+  ['https://tech-insider.org/claude-sonnet-5-vs-gpt-5-6-vs-gemini-3-7-flash-2026/','Sonnet 5 vs GPT-5.6 vs Gemini 3.7 Flash','same three, different cut'],
+  ['https://www.elser.ai/news/best-ai-coding-models-2026-comparison','Best AI coding models 2026','roundup with real usage notes'],
+  ['https://andrew.ooo/answers/gemini-3-6-flash-vs-claude-sonnet-5-vs-gpt-5-6-terra-coding-agents-july-2026/','Gemini 3.6 Flash vs Sonnet 5 vs Terra','coding-agent angle'],
+  ['https://benchlm.ai/benchmarks','benchlm benchmarks','full evidence boards'],
+  ['https://openrouter.ai/rankings','OpenRouter rankings','live usage share'],
+  ['https://glm5.app/blog/ox-alpha-openrouter','GLM 5 / Ox Alpha on OpenRouter','GLM-family adoption notes'],
+  ['https://gist.github.com/rlnorthcutt/e6f392cd1ffb1339cc42dfb024c3cf7f','rlnorthcutt free-models gist','community free-tier ledger']
+];
+document.getElementById('srcs').innerHTML = SRC.map(s => `<a href="${s[0]}" target="_blank" rel="noopener">${s[1]}<br><span>${s[2]}</span></a>`).join('');
+
+// spawn-prompt copy buttons
+document.querySelectorAll('.prompt .copy').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const pre = btn.closest('.prompt').querySelector('pre');
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'copied'; btn.classList.add('done');
+      setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('done'); }, 1500);
+    });
+  });
+});
+</script>
+</body>
+</html>

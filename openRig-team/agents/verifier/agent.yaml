@@ -1,0 +1,31 @@
+name: verifier
+version: "1.0"
+description: Verifier — mechanical L1/L2 + golden-drift gates. Fail-closed. Gates, never ships.
+
+defaults:
+  runtime: claude-code
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance:
+        - shared:context-discipline
+      subagents: []
+      plugins: []
+      runtime_resources: []
+
+imports:
+  - ref: local:../shared
+
+resources:
+  guidance:
+    - id: role
+      path: guidance/role.md
+
+startup:
+  files:
+    - path: guidance/role.md
+      delivery_hint: send_text
+      required: true
+  actions: []

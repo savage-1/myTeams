@@ -1,0 +1,31 @@
+name: junior-dev
+version: "1.0"
+description: Junior Dev — the hands. Implements clear specs into working, verified code. It's JD, not LD.
+
+defaults:
+  runtime: claude-code
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance:
+        - shared:context-discipline
+      subagents: []
+      plugins: []
+      runtime_resources: []
+
+imports:
+  - ref: local:../shared
+
+resources:
+  guidance:
+    - id: role
+      path: guidance/role.md
+
+startup:
+  files:
+    - path: guidance/role.md
+      delivery_hint: send_text
+      required: true
+  actions: []

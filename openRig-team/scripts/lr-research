@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# LR research toolkit — model routing from shared/models.yaml (RESEARCH_PROVIDER flips local↔openrouter).
+HERE="$(cd "$(dirname "$0")/.." && pwd)"
+export PYTHONPATH="$HERE"
+export RESEARCH_PROVIDER="${RESEARCH_PROVIDER:-local}"
+exec "$HERE/research/.venv/bin/python" -m research.cli "$@"
