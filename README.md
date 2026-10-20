@@ -17,14 +17,39 @@ point it at any repo.
 | code_reader | `cr` | local (see below) | code-graph-grounded reading, never writing |
 | vision | `vision` | local (see below) | image analysis, OCR |
 
-## Requirements (macOS)
+## Fresh macOS machine setup
 
-- `tmux`, `jq`, `node`
-- `claude` (Claude Code CLI) and `rig` (OpenRig CLI) on PATH
-- `python3` (3.11 recommended) — builds `openRig-team/research/.venv`
-- an **OpenRouter API key** (all claude-code seats route through OpenRouter)
-- local models OPTIONAL — LR/CR/vision default to local endpoints; flip them
-  online at one place (below)
+Everything a new machine (e.g. a MacBook Air) needs before cloning. Local models
+are NOT required — flip LR/CR/vision online (below) and the local-server stack is
+never touched.
+
+```bash
+# 1. base tools
+brew install tmux jq node python@3.11
+
+# 2. CLIs
+npm i -g @openrig/cli @anthropic-ai/claude-code
+
+# 3. clone + one-shot install (prompts for your OpenRouter key, hidden input)
+git clone https://github.com/savage-1/myTeams && cd myTeams
+./install.sh
+#    -> ~/.config/myteams/config.local.yaml (mode 600, never committed)
+#    -> research/.venv from requirements.txt
+#    -> trs symlinked to ~/.local/bin  ·  config rendered + verified
+```
+
+Then flip LR/CR/vision to online (next section) **before the first `trs up`** —
+doing it up front means no seat bounce is needed:
+
+```bash
+trs up ~/path/to/project && trs attach director
+```
+
+Not needed on a fresh machine: local models / vLLM, graphify MCP (optional
+config.local.yaml add-on), gh (only for publishing the repo).
+
+Notes: arm64 macOS + python 3.11 is the known-good combo for `requirements.txt`.
+`install.sh` is idempotent — an existing key file or venv is never touched.
 
 ## Quickstart
 
